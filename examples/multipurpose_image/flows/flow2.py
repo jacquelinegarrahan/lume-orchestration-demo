@@ -46,4 +46,4 @@ with flow:
 
 if __name__ == "__main__":
     create_project("my-example-mp-project")
-    register_flow(flow, "my-example-mp-project")
+    register_flow(flow, "my-example-mp-project", image=f"{docker_registry}/lume-orchestration-mp-example")
