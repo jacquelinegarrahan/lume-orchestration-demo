@@ -2,38 +2,56 @@ from prefect import Flow, task, Task
 from prefect.engine.results import LocalResult
 from prefect.run_configs import KubernetesRun
 from prefect.storage import Docker
-
-def schedule(func, docker_image):
-
-    def wrapper(*args, **kwargs):
-
-        @task(log_stdout=True)
-        def run_fn(*args, **kwargs):
-            func(*args, **kwargs)
-
-        flow = Flow(
-            func.__name__,
-            storage=Docker(
-                registry_url="jgarrahan", image_name="my_flow",
-                dockerfile="Dockerfile",
-                build_kwargs={"nocache": True}
-            )
-        )
-
-        flow.run_config = KubernetesRun(
-            #image="example-env:latest",
-            image=docker_image,
-            image_pull_policy="Always",
-            labels=["example"],
-        )
+from prefect.tasks.prefect import create_flow_run, get_task_run_result, wait_for_flow_run
+from prefect import Client
+import json
 
 
-        with flow:
-            run_fn(*args, **kwargs)
+def create_project(project_name: str):
+    client = Client()
+    client.create_project(project_name=project_name)
 
 
-        flow.run(name='my-test')
+def register_flow(flow: Flow, project_name: str, image: str = None):
+    flow.run_config = KubernetesRun(
+        image_pull_policy="Always",
+        labels=None,
+        image=image,
+    )
 
-    return wrapper
+    flow.register(project_name=project_name)
 
-#https://github.com/PrefectHQ/prefect/blob/master/src/prefect/executors/base.py
+
+def schedule_flow_run(flow_name: str, project_name: str, data: dict = None):
+    with Flow("schedule-run") as flow:
+        flow_run_id = create_flow_run(
+                        flow_name=flow_name,
+                        project_name=project_name, 
+                        parameters=data
+                    )
+
+    flow.run()
+
+    return flow_run_id
+
+
+def schedule_and_return_run(flow_name: str, project_name: str, data: dict = None):
+    with Flow("schedule-run") as flow:
+        flow_run_id = create_flow_run(
+                        flow_name=flow_name,
+                        project_name=project_name, 
+                        parameters=data
+                    )
+
+        slug = flow.serialize()['tasks'][0]['slug']
+
+        # slug should be absorbed into 
+        #child_data = get_task_run_result(flow_run_id, slug)
+        #print(child_data)
+
+        res = wait_for_flow_run(flow_run_id)
+        #child_data = get_task_run_result(flow_run_id, slug)
+
+    flow.run()
+
+    return 

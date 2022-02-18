@@ -3,7 +3,6 @@ import os
 
 
 class OracleDBConfig():
-
     def __init__(self, two_task: str, oracle_home: str, tns_admin: str, ld_library_path: str = None):
         self.two_task = two_task
         self.oracle_home = oracle_home
@@ -11,7 +10,7 @@ class OracleDBConfig():
         self.ld_library_path = ld_library_path
 
 
-class Oracle():
+class OracleReadableDB():
     def __init__(self, config: OracleDBConfig):
         self.config = config
 
@@ -47,25 +46,13 @@ class Oracle():
     
     def _establish_connection(self):
         self._conn = cx_Oracle.connect("/@SLACPROD")
+        self._db = self._conn.cursor()
 
 
-class OracleReadableDB():
+class OracleWritableDB(OracleReadableDB):
     ...
+    def execute(sqlstatement):
+        ...
+        self._db.execute(sqlstatement)
+        data = self._db.fetchall()
 
-
-
-class OracleWritableDB():
-    ...
-
-
-
-
-sqlstatement = "select x from y where x = 1"
-
-conn = cx_Oracle.connect("/@SLACPROD")
-db = conn.cursor()
-db.execute(sqlstatement)
-data = db.fetchall()
-
-def execute_sql(oracle_service: OracleService = OracleService()):
-    ...
