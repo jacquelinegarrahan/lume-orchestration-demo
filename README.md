@@ -13,9 +13,14 @@ prefect
 batch not implemented
 
 
-Instructions (LOCAL):
+# Instructions (LOCAL):
 
-https://kubernetes.io/docs/tasks/tools/
+
+Set up conda environment:
+```
+conda create -n lume-orchestration-demo python=3.9 prefect cx_Oracle flask lume-model
+conda activate lume-orchestration-demo
+```
 
 Use [kind](https://kind.sigs.k8s.io/) to create a local cluster:
 ```
@@ -62,27 +67,6 @@ prefect-server-towel-7b988d966f-dqnpx     1/1     Running     0          2m15s
 prefect-server-ui-5459c9f645-l964j        1/1     Running     0          2m15s
 ```
 
-Now, we start the modeling service:
-
-```
-kubectl apply -f prefect_deployment.yml
-```
-
-```
-(prefect-test) PC97901:lume-orchestration-demo jgarra$ kubectl get pods
-NAME                                      READY   STATUS      RESTARTS   AGE
-model-service-787c79f986-4lfv8            1/1     Running     0          4m56s
-prefect-job-1d41e85a-zkrjr                1/1     Running     0          3m25s
-prefect-server-agent-85bc5f6cc5-x4jz9     1/1     Running     0          3h17m
-prefect-server-apollo-844d6bc99b-q25px    1/1     Running     1          5h34m
-prefect-server-create-tenant-job-wqzhl    0/1     Completed   0          5h25m
-prefect-server-graphql-5cdd675fdf-2sh87   1/1     Running     0          5h34m
-prefect-server-hasura-7997fb8f8c-g2frc    1/1     Running     2          5h34m
-prefect-server-postgresql-0               1/1     Running     0          5h34m
-prefect-server-towel-7b988d966f-82ngb     1/1     Running     0          5h34m
-prefect-server-ui-7c5499bcb6-dtg5n        1/1     Running     0          5h34m
-```
-
 # set up port forwardings
 ```
  kubectl port-forward prefect-server-apollo-844d6bc99b-q25px 4200:4200 & 
@@ -94,5 +78,64 @@ You can now view the UI at http://localhost:8080.
 
 
 
+# DEMOS
+
+## Custom Dockerfile environment for a flow
+
+```
+cd examples/dockerfile_example/flow
+```
+
+Set environment variable pointing to DockerHub registry:
+```
+export DOCKER_REGISTRY={your registry}
+```
+
+Now build the Docker image, create the project, and register your flow:
+```
+python flow.py
+```
+
+
+Now, kick off a flow run:
+
+```
+cd ..
+python schedule_run.py
+```
+
+
+## Reuse existing docker image for many flows
+This is important because it will allow us to create reusable images for different models to be run just by passing configs!
+
+```
+cd examples/multipurpose-image/docker
+```
+
+Create example image and upload to DockerHub registry
+
+```
+docker build -t lume-orchestration-mp-example . 
+docker tag lume-orchestration-mp-example <your registry>/lume-orchestration-mp-example
+docker push <your registry>/lume-orchestration-mp-example
+```
+
+Register flows
+```
+python examples/multipurpose_image/flows/flow1.py
+python examples/multipurpose_image/flows/flow2.py
+python examples/multipurpose_image/flows/flow3.py
+```
+
+Now, lets kick them off:
+```
+python examples/multipurpose_image/schedule_run.py
+```
+
+
+
+
+
 # TODO
 - label assignments
+- Create flow runs using GH actions on releases
