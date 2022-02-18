@@ -6,3 +6,4 @@ dependencies:
   - pandas
   - pip
   - prefect[kubernetes]
+  - prefect[github]
