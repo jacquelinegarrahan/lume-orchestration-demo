@@ -2,13 +2,13 @@ from prefect import Flow, task
 from prefect.storage import Docker
 import time
 import pandas as pd
-from slac_services import create_project, register_flow
+from slac_services.scheduling import create_project, register_flow
 import os
 import sys
 
 
 # Requires a docker registry
-docker_registry = os.environ.get(["DOCKER_REGISTRY"])
+docker_registry = os.environ.get("DOCKER_REGISTRY")
 if not docker_registry:
     print("Requires docker registry to be set.")
     sys.exit()
@@ -50,4 +50,4 @@ with flow:
 
 if __name__ == "__main__":
     create_project("my-example-project")
-    register_flow(flow)
+    register_flow(flow, "my-example-project")

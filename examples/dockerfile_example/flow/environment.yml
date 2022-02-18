@@ -2,7 +2,7 @@ name: my-example-project
 channels:
   - conda-forge
 dependencies:
-  - Python=3.9
+  - Python=3.10
   - pandas
   - pip
   - prefect[kubernetes]
