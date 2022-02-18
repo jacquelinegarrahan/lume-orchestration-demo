@@ -1,8 +1,0 @@
-name: astra-impact-example
-channels:
-  - conda-forge
-dependencies:
-  - Python=3.9
-  - lume-astra
-  - lume-impact
-  - distgen
