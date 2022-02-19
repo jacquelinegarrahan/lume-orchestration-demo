@@ -36,7 +36,7 @@ def load(y):
 
 flow = Flow(
     "my-example-flow",
-    storage=Docker(registry_url="jgarrahan", image_name="my-example-flow",
+    storage=Docker(registry_url=docker_registry, image_name="my-example-flow",
     dockerfile="Dockerfile",
     build_kwargs={"nocache": True}
     )
