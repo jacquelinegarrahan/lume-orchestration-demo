@@ -48,11 +48,12 @@ def parse_config(filepath):
 
 
 
-def main():
+def initialize_services():
     container = ServiceContainer()
     config = parse_config("config.yml")
     container.config.from_pydantic(config)
     container.init_resources()
+
 
 if __name__ == "__main__":
     main()

@@ -53,13 +53,7 @@ class ModelDB:
         finally:
             self._connection.close()
 
-    def get_model(self, **kwargs):
-        sql = """
-        SELECT model_id 
-        FROM models 
-        WHERE 
-        """
-
+    def _execute_sql(self, *args, **kwargs):
 
         with self.connection as conn:
             # create inspector
@@ -73,21 +67,59 @@ class ModelDB:
 
             sql += kwarg_string.join(" AND ")
 
-            r = conn.execute(sql)
+            r = conn.execute(sql, *args)
 
         return r
 
 
-    def save_model():
-        ...
 
-    def save_project():
-        ...
+    def get_model(self, **kwargs):
+        sql = """
+        SELECT model_id 
+        FROM models 
+        WHERE 
+        """
 
-    def save_flow():
+        return self._execute_sql(sql, **kwargs)
 
-        ...
-        
+
+    def save_model(self, *, author, laboratory, facility, beampath, description):
+        sql = """
+        INSERT INTO models
+        (author, laboratory, facility, beampath, description) 
+        VALUES (%s, %s, %s, %s, %s)
+        """
+
+        return self._execute_sql(sql, author, laboratory, facility, beampath, description)
+
+
+    def create_project(self, project_name, description):
+        sql = """
+        INSERT INTO projects
+        (project_name, description) 
+        VALUES (%s, %s)
+        """
+
+        return self._execute_sql(sql, project_name, description)
+
+
+    def save_flow(self, *, flow_id, deployment_id, flow_name, project_name):
+        sql = """
+        INSERT INTO flows
+        (flow_id, deployment_id, flow_name, project_name) 
+        VALUES (%s, %s, %s, %s)
+        """
+
+        return self._execute_sql(sql, flow_id, deployment_id, flow_name, project_name)
+
+    def get_flow_id(self, deployment_id):
+        sql = """
+        SELECT flow_id
+        FROM flows
+        WHERE deployment_id = %s
+        """
+        return self._execute_sql(sql, deployment_id)
+
 
 
 class ModelingService():
@@ -98,6 +130,9 @@ class LocalModelingService(ModelingService):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._model_registry = {}
+
+    def get_model(self):
+        ...
 
     def predict(self, model_id, input_variables):
         self._model_registry[model_id].evaluate(input_variables)
