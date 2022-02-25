@@ -1,13 +1,12 @@
 from contextlib import contextmanager
 from doctest import debug_script
 from re import S
-from slac_services.scheduling import schedule_and_return_run
+from slac_services.services.scheduling import schedule_and_return_run
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError
-from pydantic import BaseSettings
+from pydantic import BaseSettings, BaseModel
 from string import Template
-
 
 
 class ModelDBConfig(BaseSettings):
@@ -53,19 +52,18 @@ class ModelDB:
         finally:
             self._connection.close()
 
-    def _execute_sql(self, *args, **kwargs):
+    def _execute_sql(self, sql, *args, **kwargs):
 
-        with self.connection as conn:
-            # create inspector
+        with self.connection() as conn:
             model_cols = self._inspector.get_columns("models")
             col_names = [col["name"] for col in model_cols]
             
-            kwarg_string = []
+            kwarg_strings = []
             for kw, value in kwargs.items():
 
-                kwarg_string.append(f"{kw} = {value}")
+                kwarg_strings.append(f"{kw} = {value}")
 
-            sql += kwarg_string.join(" AND ")
+            sql += " AND ".join(kwarg_strings)
 
             r = conn.execute(sql, *args)
 
@@ -77,11 +75,11 @@ class ModelDB:
         sql = """
         SELECT model_id 
         FROM models 
-        WHERE 
         """
 
-        return self._execute_sql(sql, **kwargs)
+        r = self._execute_sql(sql, **kwargs)
 
+        return r
 
     def save_model(self, *, author, laboratory, facility, beampath, description):
         sql = """
@@ -90,8 +88,41 @@ class ModelDB:
         VALUES (%s, %s, %s, %s, %s)
         """
 
-        return self._execute_sql(sql, author, laboratory, facility, beampath, description)
+        r = self._execute_sql(sql, author, laboratory, facility, beampath, description)
 
+        # return inserted id
+        return r.lastrowid
+
+
+    def save_model_deployment(self, *, version, sha256, model_id, url, asset_dir:str=None, asset_url=None):
+        if not asset_dir and not asset_url:
+            sql = """
+            INSERT INTO model_versions
+            (version, sha256, model_id, url) 
+            VALUES (%s, %s, %s, %s)
+            """
+            args = (version, sha256, model_id, url)
+
+        elif asset_dir:
+            sql = """
+            INSERT INTO model_versions
+            (version, sha256, model_id, url, asset_dir) 
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            args = (version, sha256, model_id, url, asset_dir)
+
+        elif asset_url:
+            sql = """
+            INSERT INTO model_versions
+            (version, sha256, model_id, url, asset_url) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            args = (version, sha256, model_id, url)
+
+        r = self._execute_sql(sql, *args)
+
+        # return inserted id
+        return r.lastrowid
 
     def create_project(self, project_name, description):
         sql = """
@@ -112,13 +143,45 @@ class ModelDB:
 
         return self._execute_sql(sql, flow_id, deployment_id, flow_name, project_name)
 
-    def get_flow_id(self, deployment_id):
+
+    def get_latest_deployment(self, model_id):
+        sql = """
+        SELECT deployment_id 
+        FROM model_versions
+        WHERE model_id = %s
+        ORDER BY deploy_date DESC
+        LIMIT 1
+        """
+
+        r = self._execute_sql(sql, model_id)
+
+        return r.scalar()
+
+
+    def get_model_flow(self, deployment_id):
         sql = """
         SELECT flow_id
         FROM flows
         WHERE deployment_id = %s
         """
         return self._execute_sql(sql, deployment_id)
+
+    
+    def get_latest_model_flow(self, model_id):
+        # this is bad sql but rapidly moving and will fix later
+        deployment_id = self.get_latest_deployment(model_id)
+
+
+        sql = """
+        SELECT flow_id
+        FROM flows
+        WHERE deployment_id = %s
+        """
+
+        r = self._execute_sql(sql, deployment_id)
+
+        return r.scalar()
+
 
 
 
@@ -158,34 +221,3 @@ class RemoteModelingService():
     def load_model(self):
         ...
 
-
-
-
-"""
-class ModelSerializationService():
-    ...
-    # laboratory
-    # facility
-    # beampath
-    # model id
-
-   # EXTRAS
-    # author
-    # date deployed
-    # version
-    # metadata
-    # flow id 
-
-    # lume-model version -> h5
-    # GH artifacts, filesystem 
-
-    def save_my_model(self, mongodb_service, file_store):
-        # mongodb_service
-
-    def load_model(model_id) -> LUMEModelObject:
-        ...
-
-# LUME-model should use this convention
-model.run()
-model.output()
-"""        
