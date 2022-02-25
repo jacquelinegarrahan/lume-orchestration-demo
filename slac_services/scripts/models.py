@@ -1,7 +1,10 @@
 import click
 import yaml
+import requests
+import tempfile
+import hashlib
 from dependency_injector.wiring import Provide, inject
-from slac_services import SLACServices
+from slac_services.config import SLACServices
 from slac_services.services.modeling import ModelDB
 
 @click.command()
@@ -18,8 +21,43 @@ def save_model(configuration_file, model_db: ModelDB = Provide[SLACServices.mode
 
 @click.command()
 @click.argument('configuration_file', type=click.File(mode='r'))
-def save_model_deployment():
-    """Example script."""
+@inject
+def save_model_deployment(configuration_file, model_db: ModelDB = Provide[SLACServices.model_db]):
     config = yaml.safe_load(configuration_file)
 
-    click.echo('Hello World!')
+
+    # get versioned artifact
+    response = requests.get(config["model_version"]["url"], stream=True)
+    if response.status_code == 200:
+
+        with tempfile.TemporaryFile() as fp:
+            fp.write(response.raw.read())
+            bytes = fp.read() # read entire file as bytes
+
+            # generate hash for artifact
+            readable_hash = hashlib.sha256(bytes).hexdigest()
+
+    config["model_version"]["sha256"] = readable_hash
+
+    model_deployment_id = model_db.save_model_deployment(**config["model_version"])
+
+    click.echo(f"Created model_deployment with id: {model_deployment_id}")
+
+
+@click.command()
+@click.argument('project_name')
+@click.argument('description')
+@inject
+def create_project(project_name, description, model_db: ModelDB = Provide[SLACServices.model_db]):
+    
+    model_id = model_db.create_project(project_name, description)
+
+    click.echo(f"Created project {project_name}")
+
+
+def save_model_flow():
+    ...
+
+
+def get_model_flow():
+    ...
