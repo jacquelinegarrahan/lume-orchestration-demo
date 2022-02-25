@@ -5,13 +5,13 @@ from unittest.util import strclass
 from slac_services.services.scheduling import schedule_and_return_run
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.exc import OperationalError
-from pydantic import BaseSettings, BaseModel
+from pydantic import BaseSettings
 from string import Template
-from importlib import metadata, import_module
+from importlib import import_module
+from importlib_metadata import entry_points, metadata
 import subprocess
 import sys
-
+from typing import List
 
 class ModelDBConfig(BaseSettings):
     db_uri_template: str
@@ -134,16 +134,6 @@ class ModelDB:
         return self._execute_sql(sql, project_name, description)
 
 
-    def save_flow(self, *, flow_id, deployment_id, flow_name, project_name):
-        sql = """
-        INSERT INTO flows
-        (flow_id, deployment_id, flow_name, project_name) 
-        VALUES (%s, %s, %s, %s)
-        """
-
-        return self._execute_sql(sql, flow_id, deployment_id, flow_name, project_name)
-
-
     def get_latest_deployment(self, model_id):
         sql = """
         SELECT *
@@ -171,7 +161,6 @@ class ModelDB:
         # this is bad sql but rapidly moving and will fix later
         deployment_id = self.get_latest_deployment(model_id).deployment_id
 
-
         sql = """
         SELECT flow_id
         FROM flows
@@ -183,46 +172,84 @@ class ModelDB:
         return r.scalar()
 
 
+    def store_flow(self, *, flow_id, deployment_ids: List[int], flow_name, project_name):
+        sql = """
+        INSERT INTO flows
+        (flow_id, deployment_id, flow_name, project_name) 
+        VALUES (%s, %s, %s, %s)
+        """
+
+        for deployment_id in deployment_ids:
+            self._execute_sql(sql, flow_id, deployment_id, flow_name, project_name)
+
+        return True
+
+
+
 class ModelingService():
 
     def __init__(self, *, model_db):
         self._model_db = model_db
+        self._model_registry = {}
+
+
+    def _install_deployment(self, deployment):
+
+        # try install
+        try:
+            output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', deployment.url])
+
+        except:
+            print(f"Unable to install {deployment.package_name}")
+            sys.exit()
+
+        
+        from importlib_metadata import distribution
+        dist = distribution(deployment.package_name)
+        normalized_name = dist._normalized_name
+        model_entrypoint = dist.entry_points.select(group="orchestration", name=f"{normalized_name}.model")
+        if len(model_entrypoint):
+            model_entrypoint = model_entrypoint[0].value
+
+        flow_entrypoint = dist.entry_points.select(group="orchestration", name=f"{normalized_name}.flow")
+        if len(flow_entrypoint):
+            flow_entrypoint = flow_entrypoint[0].value
+
+
+        # add to registry
+        self._model_registry[deployment.model_id] = {"model_entrypoint": model_entrypoint, "package": normalized_name, "flow_entrypoint": flow_entrypoint}
+
 
 
 class LocalModelingService(ModelingService):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._model_registry = {}
 
-    def get_model(self, model_id):
 
-        model = self._model_registry.get(model_id)
-        if self._model_registry.get(model_id):
-            return model
+    def get_model(self, model_id: int):
+        # add function to get old deployment
+
+        if self._model_registry.get(model_id) is not None:
+            pass
 
         else:
             deployment = self._model_db.get_latest_deployment(model_id)
+            self._install_deployment(deployment)
 
-            # try install
-            try:
-                output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', deployment.url])
+        return self._load_model_from_entrypoint(self._model_registry[model_id]["model_entrypoint"])
 
-            except:
-                print(f"Unable to install {deployment.package_name}")
-                sys.exit()
+    def predict(self, model_id: int, input_variables):
+        model = self.get_model(model_id)
 
-            entrypoint_class = metadata.entry_points()['orchestration'][0].value
-            module_name, class_name = entrypoint_class.rsplit(":", 1)
-            model_class = getattr(import_module(module_name), class_name)
-            model =  model_class()
+        return model.evaluate(input_variables)
 
-            # add to registry
-            self._model_registry[model_id] = model
+    @staticmethod
+    def _load_model_from_entrypoint(model_entrypoint):
+        module_name, class_name = model_entrypoint.rsplit(":", 1)
+        model_class = getattr(import_module(module_name), class_name)
 
-            return model
-
-    def predict(self, model_id, input_variables):
-        return self._model_registry[model_id].evaluate(input_variables)
+        print(model_class)
+        return model_class()
 
 
 class RemoteModelingService():
@@ -235,6 +262,20 @@ class RemoteModelingService():
         project_name = self._model_registry[model_id]["project_name"]
 
         schedule_and_return_run(flow_name, project_name, data)
+
+
+    def register_model_flow(self, model_id):
+        # add option to register by deployment id
+
+        deployment = self._model_db.get_latest_deployment(model_id)
+        self._install_deployment(deployment)
+
+
+        
+
+
+
+
 
     def store_results(self, mongo_service):
         ...
