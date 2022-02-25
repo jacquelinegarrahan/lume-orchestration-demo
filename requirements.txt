@@ -1,4 +1,8 @@
 cx_Oracle
 prefect
-flask
 lume-model
+sqlalchemy
+pymysql
+dependency_injector
+click
+sshtunnel
