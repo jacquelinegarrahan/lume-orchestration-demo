@@ -26,4 +26,10 @@ setup(
     url="https://github.com/slaclab/slac_services",
     include_package_data=True,
     python_requires=">=3.7",
+    entry_points={
+        'console_scripts': [
+            'save-model = slac_services.scripts.models:save_model',
+            'save-model-deployment = slac_services.scripts.models:save_model_deployment',
+        ]
+    },
 )
