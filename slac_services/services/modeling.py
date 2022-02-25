@@ -1,12 +1,16 @@
 from contextlib import contextmanager
 from doctest import debug_script
 from re import S
+from unittest.util import strclass
 from slac_services.services.scheduling import schedule_and_return_run
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import OperationalError
 from pydantic import BaseSettings, BaseModel
 from string import Template
+from importlib import metadata, import_module
+import subprocess
+import sys
 
 
 class ModelDBConfig(BaseSettings):
@@ -55,8 +59,6 @@ class ModelDB:
     def _execute_sql(self, sql, *args, **kwargs):
 
         with self.connection() as conn:
-            model_cols = self._inspector.get_columns("models")
-            col_names = [col["name"] for col in model_cols]
             
             kwarg_strings = []
             for kw, value in kwargs.items():
@@ -68,8 +70,6 @@ class ModelDB:
             r = conn.execute(sql, *args)
 
         return r
-
-
 
     def get_model(self, **kwargs):
         sql = """
@@ -94,28 +94,28 @@ class ModelDB:
         return r.lastrowid
 
 
-    def save_model_deployment(self, *, version, sha256, model_id, url, asset_dir:str=None, asset_url=None):
+    def save_model_deployment(self, *, version, sha256, model_id, url, package_name, asset_dir:str=None, asset_url=None):
         if not asset_dir and not asset_url:
             sql = """
             INSERT INTO model_versions
-            (version, sha256, model_id, url) 
-            VALUES (%s, %s, %s, %s)
+            (version, sha256, model_id, url, package_name) 
+            VALUES (%s, %s, %s, %s, %s)
             """
-            args = (version, sha256, model_id, url)
+            args = (version, sha256, model_id, url, package_name)
 
         elif asset_dir:
             sql = """
             INSERT INTO model_versions
-            (version, sha256, model_id, url, asset_dir) 
-            VALUES (%s, %s, %s, %s, %s)
+            (version, sha256, model_id, url, asset_dir, package_name) 
+            VALUES (%s, %s, %s, %s, %s, %s)
             """
-            args = (version, sha256, model_id, url, asset_dir)
+            args = (version, sha256, model_id, url, asset_dir, package_name)
 
         elif asset_url:
             sql = """
             INSERT INTO model_versions
-            (version, sha256, model_id, url, asset_url) 
-            VALUES (%s, %s, %s, %s, %s, %s)
+            (version, sha256, model_id, url, asset_url, package_name) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
             args = (version, sha256, model_id, url)
 
@@ -146,7 +146,7 @@ class ModelDB:
 
     def get_latest_deployment(self, model_id):
         sql = """
-        SELECT deployment_id 
+        SELECT *
         FROM model_versions
         WHERE model_id = %s
         ORDER BY deploy_date DESC
@@ -155,7 +155,7 @@ class ModelDB:
 
         r = self._execute_sql(sql, model_id)
 
-        return r.scalar()
+        return r.first()
 
 
     def get_model_flow(self, deployment_id):
@@ -169,7 +169,7 @@ class ModelDB:
     
     def get_latest_model_flow(self, model_id):
         # this is bad sql but rapidly moving and will fix later
-        deployment_id = self.get_latest_deployment(model_id)
+        deployment_id = self.get_latest_deployment(model_id).deployment_id
 
 
         sql = """
@@ -183,10 +183,10 @@ class ModelDB:
         return r.scalar()
 
 
-
-
 class ModelingService():
-    ...
+
+    def __init__(self, *, model_db):
+        self._model_db = model_db
 
 
 class LocalModelingService(ModelingService):
@@ -194,11 +194,35 @@ class LocalModelingService(ModelingService):
         super().__init__(*args, **kwargs)
         self._model_registry = {}
 
-    def get_model(self):
-        ...
+    def get_model(self, model_id):
+
+        model = self._model_registry.get(model_id)
+        if self._model_registry.get(model_id):
+            return model
+
+        else:
+            deployment = self._model_db.get_latest_deployment(model_id)
+
+            # try install
+            try:
+                output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', deployment.url])
+
+            except:
+                print(f"Unable to install {deployment.package_name}")
+                sys.exit()
+
+            entrypoint_class = metadata.entry_points()['orchestration'][0].value
+            module_name, class_name = entrypoint_class.rsplit(":", 1)
+            model_class = getattr(import_module(module_name), class_name)
+            model =  model_class()
+
+            # add to registry
+            self._model_registry[model_id] = model
+
+            return model
 
     def predict(self, model_id, input_variables):
-        self._model_registry[model_id].evaluate(input_variables)
+        return self._model_registry[model_id].evaluate(input_variables)
 
 
 class RemoteModelingService():
