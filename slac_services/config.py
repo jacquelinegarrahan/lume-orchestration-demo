@@ -4,14 +4,14 @@ from dependency_injector.wiring import Provide, inject
 from pydantic import BaseSettings
 import yaml
 
-from slac_services.modeling import ModelDBConfig, ModelDB, ModelingService, RemoteModelingService, LocalModelingService
+from slac_services.services.modeling import ModelDBConfig, ModelDB, ModelingService, RemoteModelingService, LocalModelingService
 
 
 class Settings(BaseSettings):
     model_db: ModelDBConfig
 
 
-class ServiceContainer(containers.DeclarativeContainer):
+class SLACServices(containers.DeclarativeContainer):
 
     config = providers.Configuration()
 
@@ -49,11 +49,7 @@ def parse_config(filepath):
 
 
 def initialize_services():
-    container = ServiceContainer()
+    container = SLACServices()
     config = parse_config("config.yml")
     container.config.from_pydantic(config)
-    container.init_resources()
-
-
-if __name__ == "__main__":
-    main()
+    return container
