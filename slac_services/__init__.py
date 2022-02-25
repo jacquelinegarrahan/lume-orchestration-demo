@@ -1,5 +1,5 @@
-from slac_services.config import initialize_services, SLACServices
+from slac_services.config import initialize_services
 
-services = initialize_services()
+service_container = initialize_services()
 
-services.wire(packages=["slac_services.scripts.models"])
+service_container.wire(packages=["slac_services.scripts.models"])
