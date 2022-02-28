@@ -24,7 +24,7 @@ class RemoteEPICSConnectionService:
     @contextmanager
     def connection(self):
 
-        os.environ["CA_NAME_SERVER_PORT"] = self._local_port
+        os.environ["CA_NAME_SERVER_PORT"] = str(self._local_port)
         
         with open(self._password_file, "r") as f:
             password = f.read()

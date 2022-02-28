@@ -10,71 +10,54 @@ from prefect.backend import FlowRunView
 import json
 
 
-# specify namespace
-def assemble_flow():
-    ...
+
+class PrefectScheduler:
+
+    def __init__(self):
+        self._client = Client()
+
+    def create_project(self, project_name: str):
+        self._client.create_project(project_name=project_name)
 
 
-def create_project(project_name: str):
-    client = Client()
-    client.create_project(project_name=project_name)
+    def register_flow(self, flow: Flow, project_name: str):
+        #flow.run_config = KubernetesRun(
+        #    image_pull_policy="Always",
+        #    labels=None,
+        #)
+
+        flow_id = flow.register(project_name=project_name, build=False)
+        return flow_id
 
 
-def register_flow(flow: Flow, project_name: str, image: str = None):
-    flow.run_config = KubernetesRun(
-        image_pull_policy="Always",
-        labels=None,
-        image=image,
-    )
+    def schedule_flow_run(self, flow_name: str, project_name: str, data: dict = None):
+        with Flow("schedule-run") as flow:
+            flow_run_id = create_flow_run(
+                            flow_name=flow_name,
+                            project_name=project_name, 
+                            parameters=data
+                        )
 
-    flow_id = flow.register(project_name=project_name)
-    return flow_id
+        flow.run()
 
-
-def schedule_flow_run(flow_name: str, project_name: str, data: dict = None):
-    with Flow("schedule-run") as flow:
-        flow_run_id = create_flow_run(
-                        flow_name=flow_name,
-                        project_name=project_name, 
-                        parameters=data
-                    )
-
-    flow.run()
-
-    return flow_run_id
+        return flow_run_id
 
 
-def schedule_and_return_run(flow_name: str, project_name: str, data: dict = None):
-    with Flow("schedule-run") as flow:
-        flow_run_id = create_flow_run(
-                        flow_name=flow_name,
-                        project_name=project_name, 
-                        parameters=data
-                    )
+    def schedule_and_return_run(self, flow_name: str, project_name: str, data: dict = None):
+        with Flow("schedule-run") as flow:
+            flow_run_id = create_flow_run(
+                            flow_name=flow_name,
+                            project_name=project_name, 
+                            parameters=data
+                        )
 
-        slug = flow.serialize()['tasks'][0]['slug']
+            slug = flow.serialize()['tasks'][0]['slug']
 
-        # slug should be absorbed into 
-        #child_data = get_task_run_result(flow_run_id, slug)
-        #print(child_data)
+            # slug should be absorbed into 
+            #child_data = get_task_run_result(flow_run_id, slug)
+            #print(child_data)
 
-        res = wait_for_flow_run(flow_run_id)
-        #child_data = get_task_run_result(flow_run_id, slug)
-        print(flow)
+            res = wait_for_flow_run(flow_run_id)
+            #child_data = get_task_run_result(flow_run_id, slug)
 
-
-    flow_runs = FlowRunView._query_for_flow_run(where={"flow_id": {"_eq": id}})
-
-    # alt client
-    #query {
-    #    flow (where: {id: {_eq: "64c1984a-615f-4d26-b3ea-dfafceb14f6e"}}){
-    #    id
-    #    flow_runs{
-    #    name
-    #    id
-    #    }
-    #}
-    #}
-
-
-    return 
+        flow_runs = FlowRunView._query_for_flow_run(where={"flow_id": {"_eq": id}})

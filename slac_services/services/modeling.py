@@ -2,15 +2,16 @@ from contextlib import contextmanager
 from doctest import debug_script
 from re import S
 from unittest.util import strclass
-from slac_services.services.scheduling import schedule_and_return_run
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Connection
 from pydantic import BaseSettings
 from string import Template
 from importlib import import_module
 from importlib_metadata import entry_points, metadata
+from slac_services.services.scheduling import PrefectScheduler
 import subprocess
 import sys
+from importlib_metadata import distribution
 from typing import List
 
 class ModelDBConfig(BaseSettings):
@@ -147,6 +148,19 @@ class ModelDB:
 
         return r.first()
 
+    def get_deployment(self, deployment_id):
+        sql = """
+        SELECT *
+        FROM model_versions
+        WHERE deployment_id = %s
+        ORDER BY deploy_date DESC
+        LIMIT 1
+        """
+
+        r = self._execute_sql(sql, deployment_id)
+
+        return r.first()
+
 
     def get_model_flow(self, deployment_id):
         sql = """
@@ -204,7 +218,6 @@ class ModelingService():
             sys.exit()
 
         
-        from importlib_metadata import distribution
         dist = distribution(deployment.package_name)
         normalized_name = dist._normalized_name
         model_entrypoint = dist.entry_points.select(group="orchestration", name=f"{normalized_name}.model")
@@ -248,33 +261,43 @@ class LocalModelingService(ModelingService):
         module_name, class_name = model_entrypoint.rsplit(":", 1)
         model_class = getattr(import_module(module_name), class_name)
 
-        print(model_class)
         return model_class()
 
 
-class RemoteModelingService():
-    def __init__(self, model_db: ModelDB, *args, **kwargs):
+class RemoteModelingService(ModelingService):
+    def __init__(self, scheduler: PrefectScheduler, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self._scheduler = scheduler
+
 
     def predict(self, model_id, input_variables):
         data = ...
         flow_name = self._model_registry[model_id]["flow_name"]
         project_name = self._model_registry[model_id]["project_name"]
 
-        schedule_and_return_run(flow_name, project_name, data)
+     #and_return_run(flow_name, project_name, data)
 
-
-    def register_model_flow(self, model_id):
-        # add option to register by deployment id
-
-        deployment = self._model_db.get_latest_deployment(model_id)
+    def register_deployment(self, deployment_id, project_name):
+        deployment = self._model_db.get_deployment(deployment_id)
         self._install_deployment(deployment)
+        #register_flow(self, flow: Flow, project_name: str, image: str = None):
+
+        flow_entrypoint = self._model_registry[deployment.model_id]["flow_entrypoint"]
+        flow = self._return_flow_from_entrypoint(flow_entrypoint)
+ 
+        flow_id = self._scheduler.register_flow(flow, project_name)
+
+        return flow_id
 
 
-        
+    @staticmethod
+    def _return_flow_from_entrypoint(flow_entrypoint):
 
+        module_name, fn_name = flow_entrypoint.rsplit(":", 1)
+        fn = getattr(import_module(module_name), fn_name)
 
-
+        return fn()
 
 
     def store_results(self, mongo_service):
