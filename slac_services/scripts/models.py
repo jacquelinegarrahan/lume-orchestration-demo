@@ -5,7 +5,8 @@ import tempfile
 import hashlib
 from dependency_injector.wiring import Provide, inject
 from slac_services.config import SLACServices
-from slac_services.services.modeling import ModelDB
+from slac_services.services.modeling import ModelDB, RemoteModelingService
+from slac_services.services.scheduling import PrefectScheduler
 
 @click.command()
 @click.argument('configuration_file', type=click.File(mode='r'))
@@ -48,16 +49,23 @@ def save_model_deployment(configuration_file, model_db: ModelDB = Provide[SLACSe
 @click.argument('project_name')
 @click.argument('description')
 @inject
-def create_project(project_name, description, model_db: ModelDB = Provide[SLACServices.model_db]):
+def create_project(project_name, description, model_db: ModelDB = Provide[SLACServices.model_db], scheduling_service: PrefectScheduler = Provide[SLACServices.prefect_scheduler]):
     
-    model_id = model_db.create_project(project_name, description)
+    # register flow with prefect
+    scheduling_service.create_project(project_name)
+
+    # add project to db
+    model_db.create_project(project_name, description)
 
     click.echo(f"Created project {project_name}")
 
 
-def save_model_flow():
-    ...
+@click.command()
+@click.argument('deployment_id', type=int)
+@click.argument('project_name')
+@inject
+def save_deployment_flow(deployment_id, project_name, remote_modeling_service: RemoteModelingService = Provide[SLACServices.remote_modeling_service]):
+    
+    flow_id = remote_modeling_service.register_deployment(deployment_id, project_name)
 
-
-def get_model_flow():
-    ...
+    click.echo(f"Created project {project_name}")
