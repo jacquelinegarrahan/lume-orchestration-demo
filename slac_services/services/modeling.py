@@ -12,6 +12,8 @@ from slac_services.services.scheduling import PrefectScheduler
 import subprocess
 import sys
 from importlib_metadata import distribution
+from pymongo import MongoClient
+from abc import ABC, abstractmethod
 from typing import List
 
 class ModelDBConfig(BaseSettings):
@@ -24,6 +26,8 @@ class ModelDBConfig(BaseSettings):
 class ModelDB:
     """
     Not safe with mutiprocessing at present
+
+    This needs to be separated into model database and mysql implementation of database
     
     """
     def __init__(self, *, db_uri_template, pool_size, user, password):
@@ -197,9 +201,60 @@ class ModelDB:
             self._execute_sql(sql, flow_id, deployment_id, flow_name, project_name)
 
         return True
+    
+
+class ResultDB(ABC):
+
+    @abstractmethod
+    def __init__(self):
+        ...
+    
+    @abstractmethod
+    def store_results(self, deployment_id, input, output, execution_time):
+        ...
+
+    @abstractmethod
+    def load_results(self):
+        ...
 
 
 
+class SDFResultDB(ResultDB):
+
+    def __init__(self, mongo_host, mongo_port):
+        self._client = MongoClient(mongo_host, mongo_port)
+
+    def store_results(self, deployment_id, input_variables, ouptut_variables, start_time, duration):
+
+        document = {
+            "deployment_id": deployment_id,
+            "input_variables": input_variables,
+            "output_variables": ouptut_variables,
+            "start_time": start_time,
+            "duration": duration,
+        }
+
+        # use model results database
+        self._client.model_results
+
+        # what collection are we going to use ?
+        # add document to database
+        self._client.model_results.prefect.insert_one(document)
+
+
+
+    def load_results(self, ):
+        results = list(self._client.model_results.prefect.find())
+       # flattened = [flatten_dict(res) for res in results]
+       # df = pd.DataFrame(flattened)
+
+        # Load DataFrame
+       # df["date"] = pd.to_datetime(df["isotime"])
+       # df["_id"] = df["_id"].astype(str)
+       # df = df.sort_values(by="date")
+       # ...
+        return results
+    
 class ModelingService():
 
     def __init__(self, *, model_db):
@@ -208,6 +263,9 @@ class ModelingService():
 
 
     def _install_deployment(self, deployment):
+
+        # get remote tarball
+        # conda instead of pip
 
         # try install
         try:
@@ -271,12 +329,12 @@ class RemoteModelingService(ModelingService):
         self._scheduler = scheduler
 
 
-    def predict(self, model_id, input_variables):
-        data = ...
-        flow_name = self._model_registry[model_id]["flow_name"]
-        project_name = self._model_registry[model_id]["project_name"]
+    def predict(self, model_id, input_dict):
 
-     #and_return_run(flow_name, project_name, data)
+        #only using latest for now
+        flow_id = self._model_db.get_latest_model_flow(model_id)
+        self._scheduler.schedule_run(flow_id, input_dict)
+    
 
     def register_deployment(self, deployment_id, project_name):
         deployment = self._model_db.get_deployment(deployment_id)
@@ -287,6 +345,7 @@ class RemoteModelingService(ModelingService):
         flow = self._return_flow_from_entrypoint(flow_entrypoint)
  
         flow_id = self._scheduler.register_flow(flow, project_name)
+        self._model_db.store_flow(flow_id =flow_id, deployment_ids=[deployment_id],flow_name= self._model_registry[deployment.model_id]["package"], project_name=project_name)
 
         return flow_id
 

@@ -21,20 +21,16 @@ class PrefectScheduler:
 
 
     def register_flow(self, flow: Flow, project_name: str):
-        #flow.run_config = KubernetesRun(
-        #    image_pull_policy="Always",
-        #    labels=None,
-        #)
 
         flow_id = flow.register(project_name=project_name, build=False)
+        
         return flow_id
 
 
-    def schedule_flow_run(self, flow_name: str, project_name: str, data: dict = None):
+    def schedule_run(self, flow_id: str, data: dict = None):
         with Flow("schedule-run") as flow:
             flow_run_id = create_flow_run(
-                            flow_name=flow_name,
-                            project_name=project_name, 
+                            flow_id=flow_id,
                             parameters=data
                         )
 
