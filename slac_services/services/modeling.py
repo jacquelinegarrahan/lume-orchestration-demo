@@ -203,7 +203,7 @@ class ModelDB:
         return True
     
 
-class ResultDB(ABC):
+class ResultsDB(ABC):
 
     @abstractmethod
     def __init__(self):
@@ -219,7 +219,7 @@ class ResultDB(ABC):
 
 
 
-class SDFResultDB(ResultDB):
+class SDFResultsDB(ResultDB):
 
     def __init__(self, mongo_host, mongo_port):
         self._client = MongoClient(mongo_host, mongo_port)
