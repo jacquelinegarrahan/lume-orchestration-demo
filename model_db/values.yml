@@ -1,0 +1,6 @@
+image:
+  debug: true
+auth:
+  username: root
+  password: "password"
+  rootPassword: "password"

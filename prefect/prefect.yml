@@ -1,0 +1,14 @@
+postgresql:
+  servicePort: 5432
+  postgresqlPassword: password
+agent:
+  enabled: true 
+jobs:
+  createTenant:
+    enabled: true
+apollo:
+  service: 
+    port: 4200
+ui: 
+  service: 
+      port: 8080

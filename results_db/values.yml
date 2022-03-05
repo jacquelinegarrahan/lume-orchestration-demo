@@ -1,0 +1,6 @@
+auth:
+  username: root
+  password: password
+  rootPassword: password
+service:
+  port: 27017
