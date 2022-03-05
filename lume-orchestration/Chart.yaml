@@ -1,4 +1,4 @@
-apiVersion: v2
+apiVersion: apps/v1
 name: lume-orchestration
 description: A Helm chart for Kubernetes
 
@@ -21,16 +21,22 @@ version: 0.1.0
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
-appVersion: "1.16.0"
+appVersion: "0.0.1"
 
+keywords:
+- prefect
+- mongodb
+- mysql
 
 dependencies:
   - name: prefect-server
     version: 2022.01.x
-    repository: https://prefecthq.github.io/server/prefect-server
-  - name: model-db
+    repository: https://prefecthq.github.io/server
+  - name: mysql
     version: 8.0.x
-    repository: https://charts.bitnami.com/bitnami/mysql
-  - name: results-db
+    repository: https://charts.bitnami.com/bitnami
+    alias: model-db
+  - name: mongodb
     version: 4.4.x
-    repository: https://charts.bitnami.com/bitnami/mogodb
+    repository: https://charts.bitnami.com/bitnami
+    alias: results-db

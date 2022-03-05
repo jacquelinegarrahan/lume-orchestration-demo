@@ -7,15 +7,27 @@ prefect-server: # https://github.com/PrefectHQ/server/blob/master/helm/prefect-s
     jobs:
       createTenant:
         enabled: true
-model-db: # https://github.com/bitnami/charts/tree/master/bitnami/mysql/
+    apollo:
+      service: 
+        port: 4200
+    ui: 
+      service: 
+         port: 8080
+mysql: # https://github.com/bitnami/charts/tree/master/bitnami/mysql/
   image:
     debug: true
   auth:
     username: root
     password: password
     rootPassword: password
-results-db: # https://github.com/bitnami/charts/tree/master/bitnami/mongodb
+  primary:
+    service: 
+      port: 3306
+mongodb: # https://github.com/bitnami/charts/tree/master/bitnami/mongodb
   auth:
     username: root
     password: password
     rootPassword: password
+  service:
+    port: 27017
+  
