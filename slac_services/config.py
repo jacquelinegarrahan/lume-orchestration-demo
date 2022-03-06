@@ -70,7 +70,7 @@ def parse_config(filepath):
         config = yaml.safe_load(file)
 
     model_db_config = LCLSModelDBConfig(**config["model_db"])
-    results_db_config = SDFResultsDBConfig(**config["results_db"])
+    results_db_config = SDFResultsDBConfig()
 
     settings = Settings(model_db=model_db_config, results_db_config=results_db_config)
 
