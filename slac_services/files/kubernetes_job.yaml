@@ -10,9 +10,8 @@ spec:
     spec:
       containers:
         - name: flow
-          image: prefecthq/prefect:latest
-          imagePullPolicy: IfNotPresent
-          command: ["/bin/sh", "-c"]
+#          image: prefecthq/prefect:latest
+     #     command: ["/bin/sh", "-c"]
           args: ["prefect execute flow-run"]
           env:
             - name: PREFECT__CLOUD__API
@@ -45,11 +44,3 @@ spec:
               cpu: "100m"
             limits:
               cpu: "100m"
-          volumeMounts:
-            - name: prefect-job
-              mountPath: /Users/jgarra/sandbox/lume-orchestration-demo/examples/distgen-impact-cu-inj
-      restartPolicy: Never
-      imagePullSecrets:
-      - name: ""
-      volumes:
-        - name: prefect-job

@@ -1,6 +1,7 @@
 from dependency_injector import containers, providers
 from dependency_injector.wiring import Provide, inject
 
+from pkg_resources import resource_filename
 from pydantic import BaseSettings
 import yaml
 import os
@@ -9,15 +10,25 @@ from slac_services.services.modeling import ModelDBConfig, ModelDB, SDFResultsDB
 from slac_services.services.remote import RemoteEPICSConnectionConfig, RemoteEPICSConnectionService
 from slac_services.services.scheduling import PrefectScheduler
 
+
+SDF_RUN_TEMPLATE  = resource_filename(
+    "slac_services.files", "kubernetes_job.yaml"
+)
+
+
 # these are hard-coded here, but if abstracted on the laboratory level these would be defined in lab-level package
 class LCLSModelDBConfig(ModelDBConfig):
     # this needs to be parsed out with new abstracted db
     db_uri_template="mysql+pymysql://${user}:${password}@127.0.0.1:3306/model_db"
     pool_size= 1
 
-class SDFResultsDBConfig:
+class SDFResultsDBConfig(BaseSettings):
     mongo_host="localhost"
     mongo_port=27017
+
+class PrefectSchedulerConfig(BaseSettings):
+    cluster_mount_point: str
+
 
 class Settings(BaseSettings):
     model_db: LCLSModelDBConfig
@@ -43,22 +54,22 @@ class SLACServices(containers.DeclarativeContainer):
     )
 
     prefect_scheduler = providers.Singleton(
-        PrefectScheduler
+        PrefectScheduler,
+        job_template = SDF_RUN_TEMPLATE,
+        cluster_mount_point = config.scheduler.cluster_mount_point,
     )
 
     remote_modeling_service = providers.Singleton(
         RemoteModelingService,
         model_db=model_db,
         results_db=results_db,
-        scheduler = prefect_scheduler
+        scheduler=prefect_scheduler
     )
 
     local_modeling_service = providers.Singleton(
         LocalModelingService,
         model_db=model_db,
     )
-
-
 
 
 
@@ -71,6 +82,7 @@ def parse_config(filepath):
 
     model_db_config = LCLSModelDBConfig(**config["model_db"])
     results_db_config = SDFResultsDBConfig()
+    prefect_scheduler_configs = PrefectSchedulerConfig(**config["scheduler"])
 
     settings = Settings(model_db=model_db_config, results_db_config=results_db_config)
 
@@ -79,7 +91,7 @@ def parse_config(filepath):
 
 
 def initialize_services():
-    config_file = os.environ["SLAC_CONFIG"]
+    config_file = os.environ["LUME_ORCHESTRATION_CONFIG"]
 
     container = SLACServices()
     config = parse_config(config_file)

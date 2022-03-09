@@ -1,29 +1,58 @@
-from prefect import Flow, task, Task
-from prefect.engine.results import LocalResult
-from prefect.run_configs import KubernetesRun
-from prefect.storage import Docker
-from prefect.tasks.prefect import create_flow_run, get_task_run_result, wait_for_flow_run
+from prefect import Flow
+from prefect.tasks.prefect import create_flow_run, wait_for_flow_run
 from prefect import Client
-
+from prefect.run_configs import KubernetesRun
 from prefect.backend import FlowRunView
-
+import yaml
 import json
 
+
+class SDFRunConfig:
+    ...
 
 
 class PrefectScheduler:
 
-    def __init__(self):
+    def __init__(self, job_template: str = None, cluster_mount_point: str=None):
         self._client = Client()
+        self._job_template = job_template
+
+        # Using cluster mount point here to communicate local cluster mounting...
+        # This may differ with 
+        self._cluster_mount_point = cluster_mount_point
 
     def create_project(self, project_name: str):
         self._client.create_project(project_name=project_name)
 
 
-    def register_flow(self, flow: Flow, project_name: str):
+    def register_flow(self, flow: Flow, project_name: str, mount_point: str=None, build: bool = False):
 
-        flow_id = flow.register(project_name=project_name, build=False)
-        
+        image_name = f"{flow.storage.registry_url}/{flow.storage.image_name}"
+        if flow.storage.image_tag:
+            image_name = image_name + f":{flow.storage.image_tag}"
+
+        # load job template
+        if self._job_template:
+            with open(self._job_template, "r") as stream:
+                try:
+                    yaml_stream = yaml.safe_load(stream)
+                except yaml.YAMLError as exc:
+                    print(exc)
+
+            # if mount point also given, modify yaml
+            # This assumes only one mounted volume
+            yaml_stream["spec"]["template"]["spec"]["volumes"] = [
+                {'name': 'filesystem-dir', 'hostPath': {'path': mount_point, 'type': 'Directory'}}
+            ]
+
+            yaml_stream["spec"]["template"]["spec"]["containers"][0]["volumeMounts"] =  [{'name': 'filesystem-dir', 'mountPath': mount_path}]
+
+            
+        # this all needs to be abstracted... 
+        flow.run_config = KubernetesRun(image=image_name, image_pull_policy="Always", job_template=yaml_stream)
+
+        flow_id = flow.register(project_name=project_name, build=build)
+
         return flow_id
 
 
