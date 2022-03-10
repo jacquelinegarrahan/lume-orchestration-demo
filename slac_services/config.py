@@ -6,7 +6,7 @@ from pydantic import BaseSettings
 import yaml
 import os
 
-from slac_services.services.modeling import ModelDBConfig, ModelDB, SDFResultsDB, RemoteModelingService, LocalModelingService
+from slac_services.services.modeling import ModelDBConfig, ModelDB, ResultsMongoDB, RemoteModelingService, LocalModelingService
 from slac_services.services.remote import RemoteEPICSConnectionConfig, RemoteEPICSConnectionService
 from slac_services.services.scheduling import PrefectScheduler
 
@@ -33,6 +33,7 @@ class PrefectSchedulerConfig(BaseSettings):
 class Settings(BaseSettings):
     model_db: LCLSModelDBConfig
     results_db_config: SDFResultsDBConfig
+    scheduler_config: PrefectSchedulerConfig
 
 
 class SLACServices(containers.DeclarativeContainer):
@@ -48,7 +49,7 @@ class SLACServices(containers.DeclarativeContainer):
     )
 
     results_db = providers.Singleton(
-        SDFResultsDB,
+        ResultsMongoDB,
         mongo_host= config.results_db.mongo_host,
         pongo_port = config.results_db.port
     )
@@ -82,9 +83,9 @@ def parse_config(filepath):
 
     model_db_config = LCLSModelDBConfig(**config["model_db"])
     results_db_config = SDFResultsDBConfig()
-    prefect_scheduler_configs = PrefectSchedulerConfig(**config["scheduler"])
+    prefect_scheduler_config = PrefectSchedulerConfig(**config["scheduler"])
 
-    settings = Settings(model_db=model_db_config, results_db_config=results_db_config)
+    settings = Settings(model_db=model_db_config, results_db_config=results_db_config, scheduler_config=prefect_scheduler_config)
 
     return settings
 

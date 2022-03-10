@@ -7,12 +7,13 @@ from sqlalchemy.engine.base import Connection
 from pydantic import BaseSettings
 from string import Template
 from importlib import import_module
-from importlib_metadata import entry_points, metadata
 from slac_services.services.scheduling import PrefectScheduler
+from slac_services.utils import flatten_dict
 import subprocess
 import sys
 from importlib_metadata import distribution
 from pymongo import MongoClient
+import pandas as pd 
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -219,17 +220,18 @@ class ResultsDB(ABC):
 
 
 
-class SDFResultsDB(ResultDB):
+class ResultsMongoDB(ResultsDB):
+
+    # Note: pymongo is threadsafe
 
     def __init__(self, mongo_host, mongo_port):
         self._client = MongoClient(mongo_host, mongo_port)
 
-    def store_results(self, deployment_id, input_variables, ouptut_variables, start_time, duration):
-
+    def store_results(self, deployment_id, start_time, duration, input_struct, output_struct):
         document = {
             "deployment_id": deployment_id,
-            "input_variables": input_variables,
-            "output_variables": ouptut_variables,
+            "input_variables": input_struct,
+            "output_variables": output_struct,
             "start_time": start_time,
             "duration": duration,
         }
@@ -241,20 +243,18 @@ class SDFResultsDB(ResultDB):
         # add document to database
         self._client.model_results.prefect.insert_one(document)
 
-
-
-    def load_results(self, ):
+    def load_results(self) -> pd.DataFrame:
         results = list(self._client.model_results.prefect.find())
-       # flattened = [flatten_dict(res) for res in results]
-       # df = pd.DataFrame(flattened)
+        flattened = [flatten_dict(res) for res in results]
+        df = pd.DataFrame(flattened)
 
         # Load DataFrame
-       # df["date"] = pd.to_datetime(df["isotime"])
-       # df["_id"] = df["_id"].astype(str)
-       # df = df.sort_values(by="date")
-       # ...
-        return results
+        df["date"] = pd.to_datetime(df["isotime"])
+        df["_id"] = df["_id"].astype(str)
+     #   df = df.sort_values(by="date")
+        return df
     
+
 class ModelingService():
 
     def __init__(self, *, model_db):
@@ -344,12 +344,17 @@ class RemoteModelingService(ModelingService):
         flow_entrypoint = self._model_registry[deployment.model_id]["flow_entrypoint"]
         flow = self._return_flow_from_entrypoint(flow_entrypoint)
  
+        # update flow run config
+
+      #  flow.run_config.job_template_path="s3://bucket/path/to/spec.yaml")
+
         flow_id = self._scheduler.register_flow(flow, project_name)
+
         self._model_db.store_flow(flow_id =flow_id, deployment_ids=[deployment_id],flow_name= self._model_registry[deployment.model_id]["package"], project_name=project_name)
 
         return flow_id
 
-
+        
     @staticmethod
     def _return_flow_from_entrypoint(flow_entrypoint):
 

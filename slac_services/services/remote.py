@@ -11,11 +11,10 @@ class RemoteEPICSConnectionConfig(BaseSettings):
     hop_host: str
     user: str
     password_file: str
+   
 
 class RemoteEPICSConnectionService:
-    def __init__(self, *, host, host_port, local_port, hop_host, user, password_file):
-        self._user = user
-        self._password_file = password_file
+    def __init__(self, *, host, host_port, local_port, hop_host):
         self._host = host
         self._host_port = host_port
         self._local_port = local_port
@@ -23,8 +22,6 @@ class RemoteEPICSConnectionService:
 
     @contextmanager
     def connection(self):
-
-        os.environ["CA_NAME_SERVER_PORT"] = str(self._local_port)
         
         with open(self._password_file, "r") as f:
             password = f.read()
@@ -32,7 +29,7 @@ class RemoteEPICSConnectionService:
         try:
 
             with open_tunnel(
-                (self._hop_host, 22),
+                (self._hop_host, self._hop_host),
                 remote_bind_address=(self._host, self._host_port),
                 local_bind_address=("localhost", self._local_port),
                 ssh_username=self._user,
@@ -49,3 +46,4 @@ class RemoteEPICSConnectionService:
 
         with self.connection() as conn:
             ...
+
