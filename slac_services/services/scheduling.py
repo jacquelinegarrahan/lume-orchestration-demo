@@ -57,20 +57,6 @@ class PrefectScheduler:
         #    job_template: str= None,
         #     lume_configuration_file: str=None
     ):
-
-        image_name = f"{flow.storage.registry_url}/{flow.storage.image_name}"
-        if flow.storage.image_tag:
-            image_name = image_name + f":{flow.storage.image_tag}"
-
-        # if no job template provided, pass
-        # if not job_template and not self._job_template:
-        #    yaml_stream = None
-
-        # else:
-        #    yaml_stream = self._load_job_template(job_template=job_template, mount_points=mount_points, lume_configuration_file=lume_configuration_file)
-
-        # this all needs to be abstracted...
-        # flow.run_config = self._get_run_config(image_name, yaml_stream)
         flow_id = flow.register(project_name=project_name, build=build)
 
         return flow_id
@@ -178,6 +164,9 @@ class PrefectScheduler:
                 container_volume_mounts.append(
                     {"name": "lume-config", "mountPath": lume_configuration_file}
                 )
+
+                #Add var to env
+                yaml_stream["spec"]["template"]["spec"]["env"].append({"name": "LUME_ORCHESTRATION_CONFIG", "value": lume_configuration_file})
 
             # This assumes only one mounted volume
             yaml_stream["spec"]["template"]["spec"]["volumes"] = volumes
