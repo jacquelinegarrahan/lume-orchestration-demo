@@ -1,5 +1,4 @@
 from slac_services import service_container
-from slac_services.services.scheduling import MountPoint
 
     
 scheduler = service_container.prefect_scheduler()
