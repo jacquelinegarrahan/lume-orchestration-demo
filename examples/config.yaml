@@ -1,0 +1,12 @@
+model_db:
+  db_uri_template: "mysql+pymysql://${user}:${password}@127.0.0.1:3306/model_db"
+  pool_size: 1
+  password: password
+  user: root
+
+scheduler:
+  cluster_mount_point: /Users/jgarra/sandbox
+
+results_db:
+  mongo_host: "localhost"
+  mongo_port: 27017
