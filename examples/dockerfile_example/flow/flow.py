@@ -2,16 +2,8 @@ from prefect import Flow, task
 from prefect.storage import Docker
 import time
 import pandas as pd
-from slac_services.scheduling import create_project, register_flow
 import os
 import sys
-
-
-# Requires a docker registry
-docker_registry = os.environ.get("DOCKER_REGISTRY")
-if not docker_registry:
-    print("Requires docker registry to be set.")
-    sys.exit()
 
 
 @task(log_stdout=True)
@@ -31,14 +23,18 @@ def transform(x):
 @task(log_stdout=True)
 def load(y):
     time.sleep(20)
-    print(f"Finished, {y}")
+    print(y)
+    return y
 
 
 flow = Flow(
     "my-example-flow",
-    storage=Docker(registry_url=docker_registry, image_name="my-example-flow",
+    storage=Docker(registry_url="jgarrahan", image_name="my-example-flow",
     dockerfile="Dockerfile",
-    build_kwargs={"nocache": True}
+    build_kwargs={"nocache": True},
+    stored_as_script=True,
+    path=f"/opt/prefect/flow.py",
+    image_tag="latest"
     )
 )
 
@@ -49,5 +45,8 @@ with flow:
     unrelated = extract()
 
 if __name__ == "__main__":
-    create_project("my-example-project")
-    register_flow(flow, "my-example-project")
+    from slac_services import service_container
+    scheduler = service_container.prefect_scheduler()
+
+    flow_id = scheduler.register_flow(flow, "examples", build=True)
+    

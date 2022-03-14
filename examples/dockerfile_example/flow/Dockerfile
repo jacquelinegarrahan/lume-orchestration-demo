@@ -24,6 +24,9 @@ COPY --from=build /venv /venv
 COPY _entrypoint.sh /usr/local/bin/_entrypoint.sh
 RUN chmod +x /usr/local/bin/_entrypoint.sh
 
+
+RUN mkdir /opt/prefect
+COPY flow.py /opt/prefect/flow.py
 # When image is run, run the code with the environment
 # activated:
 SHELL ["/usr/local/bin/_entrypoint.sh", "/bin/bash", "-c"]
