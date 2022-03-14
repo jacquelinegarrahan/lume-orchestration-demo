@@ -4,11 +4,69 @@ from prefect.tasks.prefect import create_flow_run, wait_for_flow_run
 from prefect import Client
 from prefect.run_configs import KubernetesRun
 from prefect.backend import FlowRunView
+from prefect.engine.result.base import Result
+from prefect.engine.serializers import JSONSerializer
 from pydantic import BaseSettings
+from pymongo.errors import WriteError
 from enum import Enum
 import yaml
 import json
-from typing import List
+import hashlib
+from typing import List, Any
+
+
+
+def fingerprint(**kwargs):
+
+    hasher = hashlib.md5()
+    hasher.update({
+        json.dumps(kwargs)
+    })
+    return hasher.hexdigest()
+
+
+class MongoDBResult(Result):
+    # must use ResultDB interface defined in modeling
+
+    def __init__(self, *, results_db, **kwargs):
+        kwargs["location"] = fingerprint
+        super().__init__(**kwargs)
+
+        self.results_db = results_db
+
+
+    def exists(self, location: str, **kwargs) -> bool:
+        # check whether target result exists
+
+        results = self.results_db.find({"fingerprint": location})
+
+    def read(self, location: str):
+        result = self._results_db.get_one()
+
+
+    def write(self, model_type: str, model_rep: dict, **kwargs):
+        # value: doc rep for model
+        run_fingerprint = fingerprint(model_rep)
+        new = self._copy()
+        new.value = model_rep
+        new.location = run_fingerprint
+
+        self.logger.debug("Writing result to results database...")
+
+        model_rep.update({"run_fingerprint": run_fingerprint})
+       
+        # add to mongodb
+        insert_result = self.results_db.store_result(model_type, model_rep)
+
+        if insert_result:
+            self.logger.debug("Successful write.")
+
+        else:
+            raise WriteError("Unable to write to results db.")
+            
+
+        return new
+
 
 
 class HostMountType(str, Enum):

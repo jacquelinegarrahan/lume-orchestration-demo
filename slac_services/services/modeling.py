@@ -211,11 +211,11 @@ class ResultsDB(ABC):
         ...
     
     @abstractmethod
-    def store_results(self, deployment_id, input, output, execution_time):
+    def find(self):
         ...
 
     @abstractmethod
-    def load_results(self):
+    def store(self):
         ...
 
 
@@ -224,35 +224,44 @@ class ResultsMongoDB(ResultsDB):
 
     # Note: pymongo is threadsafe
 
-    def __init__(self, mongo_host, mongo_port):
-        self._client = MongoClient(mongo_host, mongo_port)
+    def __init__(self, *, db_uri_template, user, password, host, port):
 
-    def store_results(self, deployment_id, start_time, duration, input_struct, output_struct):
-        document = {
-            "deployment_id": deployment_id,
-            "input_variables": input_struct,
-            "output_variables": output_struct,
-            "start_time": start_time,
-            "duration": duration,
-        }
+        # need to transition off of plaintext templating
+        self._db_uri = Template(db_uri_template).substitute(user=user, password=password, host=host, port=str(port))
+        self._client = MongoClient(self._db_uri)
+        self._db = self._client.model_results
 
-        # use model results database
-        self._client.model_results
+    def store(self, *, model_type, dat) -> bool:
+        insert_result = self._client.model_results[model_type].insert_one(dat)
+        
+        if insert_result.inserted_id:
+            return True
+        
+        else:
+            return False
 
-        # what collection are we going to use ?
-        # add document to database
-        self._client.model_results.prefect.insert_one(document)
+    def find(self, model_type, query, fields) -> pd.DataFrame:
+        results = self._db[model_type].find((query, fields))
+        
+        return results
 
-    def load_results(self) -> pd.DataFrame:
-        results = list(self._client.model_results.prefect.find())
+    def find_all(self, model_type):
+        results = self._db[model_type].find()
+        return results
+
+    def load_dataframe(self, model_type, query, fields):
+        # flattens results and returns dataframe
+        results = list(self._db[model_type].find((query, fields)))
         flattened = [flatten_dict(res) for res in results]
         df = pd.DataFrame(flattened)
 
         # Load DataFrame
         df["date"] = pd.to_datetime(df["isotime"])
         df["_id"] = df["_id"].astype(str)
-     #   df = df.sort_values(by="date")
+
         return df
+
+
     
 
 class ModelingService():
@@ -266,6 +275,9 @@ class ModelingService():
 
         # get remote tarball
         # conda instead of pip
+        # get requirements from environment.yml
+
+
 
         # try install
         try:
@@ -323,18 +335,19 @@ class LocalModelingService(ModelingService):
 
 
 class RemoteModelingService(ModelingService):
-    def __init__(self, scheduler: PrefectScheduler, *args, **kwargs):
+    def __init__(self, scheduler: PrefectScheduler, results_db: ResultsDB, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._scheduler = scheduler
+        self._results_db = results_db
 
 
     def predict(self, model_id, input_dict):
 
         #only using latest for now
         flow_id = self._model_db.get_latest_model_flow(model_id)
-        self._scheduler.schedule_run(flow_id, input_dict)
-    
+        self._scheduler.schedule_run(flow_id=flow_id, data=input_dict)
+
 
     def register_deployment(self, deployment_id, project_name):
         deployment = self._model_db.get_deployment(deployment_id)
@@ -343,10 +356,6 @@ class RemoteModelingService(ModelingService):
 
         flow_entrypoint = self._model_registry[deployment.model_id]["flow_entrypoint"]
         flow = self._return_flow_from_entrypoint(flow_entrypoint)
- 
-        # update flow run config
-
-      #  flow.run_config.job_template_path="s3://bucket/path/to/spec.yaml")
 
         flow_id = self._scheduler.register_flow(flow, project_name)
 
@@ -354,7 +363,7 @@ class RemoteModelingService(ModelingService):
 
         return flow_id
 
-        
+
     @staticmethod
     def _return_flow_from_entrypoint(flow_entrypoint):
 
@@ -363,13 +372,8 @@ class RemoteModelingService(ModelingService):
 
         return fn()
 
-
-    def store_results(self, mongo_service):
-        ...
-
     def save_model(self):
         ...
 
     def load_model(self):
         ...
-

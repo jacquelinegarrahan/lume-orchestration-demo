@@ -7,7 +7,6 @@ import yaml
 import os
 
 from slac_services.services.modeling import ModelDBConfig, ModelDB, ResultsMongoDB, RemoteModelingService, LocalModelingService
-from slac_services.services.remote import RemoteEPICSConnectionConfig, RemoteEPICSConnectionService
 from slac_services.services.scheduling import PrefectScheduler
 
 
@@ -17,23 +16,27 @@ SDF_RUN_TEMPLATE  = resource_filename(
 
 
 # these are hard-coded here, but if abstracted on the laboratory level these would be defined in lab-level package
-class LCLSModelDBConfig(ModelDBConfig):
+class SDFModelDBConfig(ModelDBConfig):
     # this needs to be parsed out with new abstracted db
-    db_uri_template="mysql+pymysql://${user}:${password}@127.0.0.1:3306/model_db"
+    db_uri_template: str
     pool_size= 1
 
 class SDFResultsDBConfig(BaseSettings):
-    mongo_host="localhost"
-    mongo_port=27017
+    db_uri_template: str
+    user: str
+    password: str
+    host: str
+    port: int
 
 class PrefectSchedulerConfig(BaseSettings):
     cluster_mount_point: str
 
 
 class Settings(BaseSettings):
-    model_db: LCLSModelDBConfig
+    model_db_config: SDFModelDBConfig
     results_db_config: SDFResultsDBConfig
     scheduler_config: PrefectSchedulerConfig
+    run_template: str = SDF_RUN_TEMPLATE
 
 
 class SLACServices(containers.DeclarativeContainer):
@@ -42,22 +45,25 @@ class SLACServices(containers.DeclarativeContainer):
 
     model_db = providers.Singleton(
         ModelDB,
-        db_uri_template=config.model_db.db_uri_template,
-        pool_size= config.model_db.pool_size,
-        user=config.model_db.user,
-        password=config.model_db.password
+        db_uri_template=config.model_db_config.db_uri_template,
+        pool_size= config.model_db_config.pool_size,
+        user=config.model_db_config.user,
+        password=config.model_db_config.password
     )
 
     results_db = providers.Singleton(
         ResultsMongoDB,
-        mongo_host= config.results_db.mongo_host,
-        pongo_port = config.results_db.port
+        db_uri_template=config.results_db_config.db_uri_template,
+        host= config.results_db_config.host,
+        port = config.results_db_config.port,
+        user=config.results_db_config.user,
+        password=config.results_db_config.password
     )
 
     prefect_scheduler = providers.Singleton(
         PrefectScheduler,
-        job_template = SDF_RUN_TEMPLATE,
-        cluster_mount_point = config.scheduler.cluster_mount_point,
+        job_template = config.run_template,
+        cluster_mount_point = config.scheduler_config.cluster_mount_point,
     )
 
     remote_modeling_service = providers.Singleton(
@@ -81,11 +87,11 @@ def parse_config(filepath):
     with open(filepath, 'r') as file:
         config = yaml.safe_load(file)
 
-    model_db_config = LCLSModelDBConfig(**config["model_db"])
-    results_db_config = SDFResultsDBConfig()
+    model_db_config = SDFModelDBConfig(**config["model_db"])
+    results_db_config = SDFResultsDBConfig(**config["results_db"])
     prefect_scheduler_config = PrefectSchedulerConfig(**config["scheduler"])
 
-    settings = Settings(model_db=model_db_config, results_db_config=results_db_config, scheduler_config=prefect_scheduler_config)
+    settings = Settings(model_db_config=model_db_config, results_db_config=results_db_config, scheduler_config=prefect_scheduler_config)
 
     return settings
 
