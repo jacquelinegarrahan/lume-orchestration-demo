@@ -16,11 +16,11 @@ from typing import List, Any
 
 
 
-def fingerprint(**kwargs):
+def fingerprint(model_rep):
 
     hasher = hashlib.md5()
     hasher.update({
-        json.dumps(kwargs)
+        json.dumps(model_rep)
     })
     return hasher.hexdigest()
 
