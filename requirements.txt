@@ -6,3 +6,6 @@ pymysql
 dependency_injector
 click
 sshtunnel
+lume-epics
+pymongo
+pandas
