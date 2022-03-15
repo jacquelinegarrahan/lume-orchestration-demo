@@ -73,7 +73,7 @@ class MongoDBResult(Result):
 
         model_rep.update({"run_fingerprint": run_fingerprint})
        
-        insert_result = self._results_db.store_result(self._model_type, model_rep)
+        insert_result = self._results_db.store(self._model_type, model_rep)
 
         if insert_result:
             self.logger.debug("Successful write.")
