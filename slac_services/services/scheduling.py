@@ -19,9 +19,9 @@ from typing import List, Any
 def fingerprint(model_rep):
 
     hasher = hashlib.md5()
-    hasher.update({
+    hasher.update(
         json.dumps(model_rep).encode("utf-8")
-    })
+    )
     return hasher.hexdigest()
 
 
