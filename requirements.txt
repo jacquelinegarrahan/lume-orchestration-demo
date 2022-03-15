@@ -8,3 +8,4 @@ click
 sshtunnel
 pymongo
 pandas
+importlib_metadata
