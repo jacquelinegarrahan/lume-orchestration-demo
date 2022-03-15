@@ -231,8 +231,8 @@ class ResultsMongoDB(ResultsDB):
         self._client = MongoClient(self._db_uri)
         self._db = self._client.model_results
 
-    def store(self, *, model_type, dat) -> bool:
-        insert_result = self._client.model_results[model_type].insert_one(dat)
+    def store(self, *, model_type, model_rep) -> bool:
+        insert_result = self._client.model_results[model_type].insert_one(model_rep)
         
         if insert_result.inserted_id:
             return True
@@ -240,16 +240,16 @@ class ResultsMongoDB(ResultsDB):
         else:
             return False
 
-    def find(self, model_type, query, fields) -> pd.DataFrame:
+    def find(self, *, model_type, query={}, fields={}) -> pd.DataFrame:
         results = self._db[model_type].find((query, fields))
         
         return list(results)
 
-    def find_all(self, model_type):
+    def find_all(self, *, model_type):
         results = self._db[model_type].find()
         return list(results)
 
-    def load_dataframe(self, model_type, query, fields):
+    def load_dataframe(self, *, model_type, query={}, fields={}):
         # flattens results and returns dataframe
         results = list(self._db[model_type].find((query, fields)))
         flattened = [flatten_dict(res) for res in results]
