@@ -43,7 +43,7 @@ class MongoDBResult(Result):
     def exists(self, location: str, **kwargs) -> bool:
         # check whether target result exists
 
-        result = self._results_db.find({"fingerprint": location}, {})
+        result = self._results_db.find(query={"fingerprint": location})
 
         if result:
             return True
@@ -56,7 +56,7 @@ class MongoDBResult(Result):
 
         new = self.copy()
         new.location = location
-        new.value = self._results_db.find({"fingerprint": location}, {})
+        new.value = self._results_db.find(query={"fingerprint": location})
 
         return new
             
@@ -73,7 +73,7 @@ class MongoDBResult(Result):
 
         model_rep.update({"run_fingerprint": run_fingerprint})
        
-        insert_result = self._results_db.store(self._model_type, model_rep)
+        insert_result = self._results_db.store(model_type = self._model_type, model_rep=model_rep)
 
         if insert_result:
             self.logger.debug("Successful write.")
