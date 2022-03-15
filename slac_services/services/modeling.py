@@ -243,11 +243,11 @@ class ResultsMongoDB(ResultsDB):
     def find(self, model_type, query, fields) -> pd.DataFrame:
         results = self._db[model_type].find((query, fields))
         
-        return results
+        return list(results)
 
     def find_all(self, model_type):
         results = self._db[model_type].find()
-        return results
+        return list(results)
 
     def load_dataframe(self, model_type, query, fields):
         # flattens results and returns dataframe

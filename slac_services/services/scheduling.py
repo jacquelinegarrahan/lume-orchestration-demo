@@ -28,11 +28,16 @@ def fingerprint(**kwargs):
 class MongoDBResult(Result):
     # must use ResultDB interface defined in modeling
 
-    def __init__(self, *, results_db, **kwargs):
+    def __init__(self, *, results_db, model_type, **kwargs):
         kwargs["location"] = fingerprint
         super().__init__(**kwargs)
 
         self.results_db = results_db
+        self._model_type = model_type
+
+        # add to mongodb
+        if not self._model_type:
+            raise ValueError("model type not provided")
 
 
     def exists(self, location: str, **kwargs) -> bool:
@@ -44,7 +49,7 @@ class MongoDBResult(Result):
         result = self._results_db.get_one()
 
 
-    def write(self, model_type: str, model_rep: dict, **kwargs):
+    def write(self, model_rep: dict, **kwargs):
         # value: doc rep for model
         run_fingerprint = fingerprint(model_rep)
         new = self._copy()
@@ -55,8 +60,7 @@ class MongoDBResult(Result):
 
         model_rep.update({"run_fingerprint": run_fingerprint})
        
-        # add to mongodb
-        insert_result = self.results_db.store_result(model_type, model_rep)
+        insert_result = self.results_db.store_result(self._model_type, model_rep)
 
         if insert_result:
             self.logger.debug("Successful write.")
