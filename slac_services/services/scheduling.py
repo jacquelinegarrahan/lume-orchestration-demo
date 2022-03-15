@@ -112,7 +112,7 @@ class PrefectScheduler:
         project_name: str,
         # mount_points: List[MountPoint] = None,
         build: bool = False,
-        #    job_template: str= None,
+        #   job_template: str= None,
         #     lume_configuration_file: str=None
     ):
         flow_id = flow.register(project_name=project_name, build=build)
@@ -128,6 +128,7 @@ class PrefectScheduler:
         mount_points: List[MountPoint] = None,
         lume_configuration_file: str = None,
     ):
+
         # if no job template provided, pass
         if not job_template and not self._job_template:
             yaml_stream = None
@@ -138,6 +139,8 @@ class PrefectScheduler:
                 mount_points=mount_points,
                 lume_configuration_file=lume_configuration_file,
             )
+
+        print(yaml_stream)
 
         run_config = self._get_run_config(job_template_rep=yaml_stream)
 
@@ -187,11 +190,11 @@ class PrefectScheduler:
             except yaml.YAMLError as exc:
                 print(exc)
 
+
+        volumes = []
+        container_volume_mounts = []
+
         if mount_points is not None:
-
-            volumes = []
-            container_volume_mounts = []
-
             for mount_point in mount_points:
 
                 volumes.append(
@@ -208,29 +211,31 @@ class PrefectScheduler:
                     {"name": mount_point.name, "mountPath": mount_point.host_path}
                 )
 
-            # Using services inside the container will require mounting a configuration file
-            # This should probably move to a key/secrets model
-            # this will fail the job if not found
-            if lume_configuration_file:
-                volumes.append(
-                    {
-                        "name": "lume-config",
-                        "hostPath": {"path": lume_configuration_file, "type": "File"},
-                    }
-                )
 
-                container_volume_mounts.append(
-                    {"name": "lume-config", "mountPath": lume_configuration_file}
-                )
 
-                #Add var to env
-                yaml_stream["spec"]["template"]["spec"]["env"].append({"name": "LUME_ORCHESTRATION_CONFIG", "value": lume_configuration_file})
+        # Using services inside the container will require mounting a configuration file
+        # This should probably move to a key/secrets model
+        # this will fail the job if not found
+        if lume_configuration_file:
+            volumes.append(
+                {
+                    "name": "lume-config",
+                    "hostPath": {"path": lume_configuration_file, "type": "File"},
+                }
+            )
 
-            # This assumes only one mounted volume
-            yaml_stream["spec"]["template"]["spec"]["volumes"] = volumes
-            yaml_stream["spec"]["template"]["spec"]["containers"][0][
-                "volumeMounts"
-            ] = container_volume_mounts
+            container_volume_mounts.append(
+                {"name": "lume-config", "mountPath": lume_configuration_file}
+            )
+
+            #Add var to env
+            yaml_stream["spec"]["template"]["spec"]['containers'][0]["env"].append({"name": "LUME_ORCHESTRATION_CONFIG", "value": lume_configuration_file})
+
+        # This assumes only one mounted volume
+        yaml_stream["spec"]["template"]["spec"]["volumes"] = volumes
+        yaml_stream["spec"]["template"]["spec"]["containers"][0][
+            "volumeMounts"
+        ] = container_volume_mounts
 
         return yaml_stream
 
