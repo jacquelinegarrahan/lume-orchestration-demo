@@ -140,8 +140,6 @@ class PrefectScheduler:
                 lume_configuration_file=lume_configuration_file,
             )
 
-        print(yaml_stream)
-
         run_config = self._get_run_config(job_template_rep=yaml_stream)
 
         flow_run_id = self._client.create_flow_run(
