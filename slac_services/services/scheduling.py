@@ -91,7 +91,7 @@ class HostMountType(str, Enum):
     # https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
     directory = "Directory"  # directory must exist at given path
     directory_or_create = (
-        "DirectorOrCreate"  # if directory does not exist, directory created
+        "DirectoryOrCreate"  # if directory does not exist, directory created
     )
     file = "File"  # file must exist at path
     file_or_create = "FileOrCreate"  # will create file if does not exist
