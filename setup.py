@@ -30,6 +30,8 @@ setup(
         'console_scripts': [
             'save-model = slac_services.scripts.models:save_model',
             'save-model-deployment = slac_services.scripts.models:save_model_deployment',
+            'create-project = slac_services.scripts.models:create_project',
+            'save-deployment-flow = slac_services.scripts.models:save_deployment_flow'
         ]
     },
 )
