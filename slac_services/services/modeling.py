@@ -331,7 +331,7 @@ class LocalModelingService(ModelingService):
 
         return self._load_model_from_entrypoint(self._model_registry[model_id]["model_entrypoint"])
 
-    def predict(self, model_id: int, input_variables):
+    def predict(self, *, model_id: int, input_variables):
         model = self.get_model(model_id)
 
         return model.evaluate(input_variables)
@@ -351,11 +351,11 @@ class RemoteModelingService(ModelingService):
         self._scheduler = scheduler
         self._results_db = results_db
 
-    def predict(self, *, model_id, input_dict, mount_points=None, lume_configuration_file=None):
+    def predict(self, *, model_id, data, mount_points=None, lume_configuration_file=None):
 
         #only using latest for now
         flow_id = self._model_db.get_latest_model_flow(model_id)
-        self._scheduler.schedule_run(flow_id=flow_id, data=input_dict, mount_points=mount_points, lume_configuration_file=lume_configuration_file)
+        self._scheduler.schedule_run(flow_id=flow_id, data=data, mount_points=mount_points, lume_configuration_file=lume_configuration_file)
 
 
     def register_deployment(self, *, deployment_id, project_name):

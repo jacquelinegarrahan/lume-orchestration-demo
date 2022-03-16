@@ -226,8 +226,6 @@ class PrefectScheduler:
                     {"name": mount_point.name, "mountPath": mount_point.host_path}
                 )
 
-
-
         # Using services inside the container will require mounting a configuration file
         # This should probably move to a key/secrets model
         # this will fail the job if not found
