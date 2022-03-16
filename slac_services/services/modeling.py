@@ -351,15 +351,14 @@ class RemoteModelingService(ModelingService):
         self._scheduler = scheduler
         self._results_db = results_db
 
-
-    def predict(self, model_id, input_dict):
+    def predict(self, *, model_id, input_dict, mount_points=None, lume_configuration_file=None):
 
         #only using latest for now
         flow_id = self._model_db.get_latest_model_flow(model_id)
-        self._scheduler.schedule_run(flow_id=flow_id, data=input_dict)
+        self._scheduler.schedule_run(flow_id=flow_id, data=input_dict, mount_points=mount_points, lume_configuration_file=lume_configuration_file)
 
 
-    def register_deployment(self, deployment_id, project_name):
+    def register_deployment(self, *, deployment_id, project_name):
         deployment = self._model_db.get_deployment(deployment_id)
         self._install_deployment(deployment)
         #register_flow(self, flow: Flow, project_name: str, image: str = None):
