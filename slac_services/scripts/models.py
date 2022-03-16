@@ -66,6 +66,6 @@ def create_project(project_name, description, model_db: ModelDB = Provide[SLACSe
 @inject
 def save_deployment_flow(deployment_id, project_name, remote_modeling_service: RemoteModelingService = Provide[SLACServices.remote_modeling_service]):
     
-    flow_id = remote_modeling_service.register_deployment(deployment_id, project_name)
+    flow_id = remote_modeling_service.register_deployment(deployment_id=deployment_id, project_name=project_name)
 
     click.echo(f"Created project {project_name}")
