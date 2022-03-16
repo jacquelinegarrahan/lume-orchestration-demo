@@ -1,0 +1,6 @@
+model: 
+  author: Ford prefect
+  laboratory: SLAC
+  facility: LCLS 
+  beampath: cu_inj
+  description: Distgen model

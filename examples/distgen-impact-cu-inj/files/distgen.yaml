@@ -1,0 +1,42 @@
+n_particle: 1000000
+random_type: hammersley
+
+start:
+  type: cathode
+  MTE:
+    value: 414
+    units: meV    
+
+total_charge:
+  value: 250
+  units: pC
+    
+t_dist:
+  type: tukey
+  length:
+    value: 7.5
+    units: ps    
+  ratio:  
+    value: 0.8
+    units: '' 
+
+xy_dist:
+  type: file2d
+  file: laser.txt
+
+transforms:
+    order:
+        - tx
+        - ty
+    tx:
+        avg_x:
+            units: mm
+            value: 0
+        type: set_avg x
+    ty:
+        avg_y:
+            units: mm
+            value: 0
+        type: set_avg y    
+
+
