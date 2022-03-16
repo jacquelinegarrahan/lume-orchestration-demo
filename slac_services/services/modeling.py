@@ -297,7 +297,7 @@ class ModelingService():
          #   output = subprocess.check_call(["conda", "env", "update", "--file", raw_url])
 
         except:
-            print(f"Unable to install environment for {deployment.package_name}")
+            print(f"Unable to install {deployment.package_name}")
             sys.exit()
  
         dist = distribution(deployment.package_name)
