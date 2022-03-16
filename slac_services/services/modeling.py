@@ -34,6 +34,7 @@ class ModelDB:
     def __init__(self, *, db_uri_template, pool_size, user, password):
         self._db_uri = Template(db_uri_template).substitute(user=user, password=password)
         self._pool_size = pool_size
+        self._connection = None
         self._create_engine()
 
     def _create_engine(self):
@@ -60,7 +61,8 @@ class ModelDB:
             yield self._connect()
 
         finally:
-            self._connection.close()
+            if self._connection is not None:
+                self._connection.close()
 
     def _execute_sql(self, sql, *args, **kwargs):
 
@@ -270,24 +272,34 @@ class ModelingService():
         self._model_db = model_db
         self._model_registry = {}
 
-
     def _install_deployment(self, deployment):
-
         # get remote tarball
         # conda instead of pip
         # get requirements from environment.yml
 
-
+        raw_url = deployment.url.replace("github", "raw.githubusercontent")
+        # assumes using environment yaml and main branch
+        raw_url = f"{raw_url}/main/environment.yml"
 
         # try install
         try:
-            output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', deployment.url])
+         #   output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', deployment.url])
+            output = subprocess.check_call(["conda", "env", "update", "--file", raw_url])
 
         except:
-            print(f"Unable to install {deployment.package_name}")
+            print(f"Unable to install environment for {deployment.package_name}")
             sys.exit()
 
-        
+
+        # try install of package 
+        try:
+            output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', f"git+{deployment.url}"])
+         #   output = subprocess.check_call(["conda", "env", "update", "--file", raw_url])
+
+        except:
+            print(f"Unable to install environment for {deployment.package_name}")
+            sys.exit()
+ 
         dist = distribution(deployment.package_name)
         normalized_name = dist._normalized_name
         model_entrypoint = dist.entry_points.select(group="orchestration", name=f"{normalized_name}.model")
@@ -298,10 +310,8 @@ class ModelingService():
         if len(flow_entrypoint):
             flow_entrypoint = flow_entrypoint[0].value
 
-
         # add to registry
         self._model_registry[deployment.model_id] = {"model_entrypoint": model_entrypoint, "package": normalized_name, "flow_entrypoint": flow_entrypoint}
-
 
 
 class LocalModelingService(ModelingService):
