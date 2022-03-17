@@ -52,7 +52,7 @@ spec:
               value: {{ .Values.mongodb.port | quote }}
             - name: MONGO_HOST
               value:  {{ .Values.mongodb.host | quote }}
-             - name: MONGO_USERNAME
+            - name: MONGO_USERNAME
               value: {{ .Values.mongodb.user | quote }}
             - name: MONGO_PASSWORD
               value:  {{ .Values.mongodb.password | quote }}
