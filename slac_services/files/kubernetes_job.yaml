@@ -41,6 +41,6 @@ spec:
               value: "prefect.engine.cloud.CloudTaskRunner"
           resources:
             requests:
-              cpu: "100m"
+              cpu: 1
             limits:
-              cpu: "100m"
+              cpu: 1
