@@ -1,4 +1,6 @@
 import datetime
+import yaml, re, os
+
 # misc utilities
 
 def flatten_dict(d):
@@ -15,3 +17,24 @@ def flatten_dict(d):
 """UTC to ISO 8601 with Local TimeZone information without microsecond"""
 def isotime():
     return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).astimezone().replace(microsecond=0).isoformat()    
+
+
+
+def load_yaml_with_env_vars(filepath):
+
+    #MATCH REGEX AND SUB
+    env_pattern = re.compile(r".*?\${(.*?)}.*?")
+    def env_constructor(loader, node):
+        value = loader.construct_scalar(node)
+        for group in env_pattern.findall(value):
+            value = value.replace(f"${{{group}}}", os.environ.get(group))
+        return value
+
+    # ADD RESOLVER AND CONSTRUCTOR
+    yaml.add_implicit_resolver("!pathex", env_pattern)
+    yaml.add_constructor("!pathex", env_constructor)
+
+    with open(filepath, 'r') as file:
+        config = yaml.safe_load(file)
+
+    return config

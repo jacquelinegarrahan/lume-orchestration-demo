@@ -6,9 +6,9 @@ from pydantic import BaseSettings
 import yaml
 import os
 
-from slac_services.services.modeling import ModelDBConfig, ModelDB, ResultsMongoDB, RemoteModelingService, LocalModelingService
+from slac_services.services.modeling import ModelDBConfig, ModelDB, ResultsMongoDBConfig, ResultsMongoDB, RemoteModelingService, LocalModelingService
 from slac_services.services.scheduling import PrefectScheduler
-
+from slac_services.utils import load_yaml_with_env_vars
 
 SDF_RUN_TEMPLATE  = resource_filename(
     "slac_services.files", "kubernetes_job.yaml"
@@ -18,11 +18,9 @@ SDF_RUN_TEMPLATE  = resource_filename(
 # these are hard-coded here, but if abstracted on the laboratory level these would be defined in lab-level package
 class SDFModelDBConfig(ModelDBConfig):
     # this needs to be parsed out with new abstracted db
-    db_uri_template: str
     pool_size= 1
 
-class SDFResultsDBConfig(BaseSettings):
-    db_uri_template: str
+class SDFResultsDBConfig(ResultsMongoDBConfig):
     user: str
     password: str
     host: str
@@ -30,7 +28,6 @@ class SDFResultsDBConfig(BaseSettings):
 
 class PrefectSchedulerConfig(BaseSettings):
     cluster_mount_point: str
-
 
 class Settings(BaseSettings):
     model_db_config: SDFModelDBConfig
@@ -48,7 +45,10 @@ class SLACServices(containers.DeclarativeContainer):
         db_uri_template=config.model_db_config.db_uri_template,
         pool_size= config.model_db_config.pool_size,
         user=config.model_db_config.user,
-        password=config.model_db_config.password
+        password=config.model_db_config.password,
+        host= config.model_db_config.host,
+        port = config.model_db_config.port,
+        database=config.model_db_config.database,
     )
 
     results_db = providers.Singleton(
@@ -78,14 +78,15 @@ class SLACServices(containers.DeclarativeContainer):
         model_db=model_db,
     )
 
+    batch_service = ...
+
 
 
 def parse_config(filepath):
     """Utility for parsing toml configs
     
     """
-    with open(filepath, 'r') as file:
-        config = yaml.safe_load(file)
+    config = load_yaml_with_env_vars(filepath)
 
     model_db_config = SDFModelDBConfig(**config["model_db"])
     results_db_config = SDFResultsDBConfig(**config["results_db"])

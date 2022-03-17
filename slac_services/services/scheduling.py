@@ -61,7 +61,6 @@ class MongoDBResult(Result):
         return new
             
 
-
     def write(self, model_rep: dict, **kwargs):
         # value: doc rep for model
         run_fingerprint = fingerprint(model_rep)
@@ -71,7 +70,10 @@ class MongoDBResult(Result):
 
         self.logger.debug("Writing result to results database...")
 
-        model_rep.update({"run_fingerprint": run_fingerprint})
+        # OMIT ISOTIME FROM THE HASHING
+
+
+        model_rep.update({"fingerprint": run_fingerprint})
        
         insert_result = self._results_db.store(model_type = self._model_type, model_rep=model_rep)
 
@@ -144,6 +146,7 @@ class PrefectScheduler:
         job_template: str = None,
         mount_points: List[MountPoint] = None,
         lume_configuration_file: str = None,
+        resource_requests: dict=None, ## SHOULD BE ABLE TO MODIFY RESOURCE REQUESTS ON PER RUN BASIS
     ):
 
         # if no job template provided, pass
@@ -168,6 +171,8 @@ class PrefectScheduler:
     def schedule_and_return_run(
         self, *, flow_name: str, project_name: str, data: dict = None
     ):
+
+        schedule_run = ...
         # BROKEN
         with Flow("schedule-run") as flow:
             flow_run_id = create_flow_run(

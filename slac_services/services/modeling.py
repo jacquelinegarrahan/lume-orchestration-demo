@@ -18,10 +18,13 @@ from abc import ABC, abstractmethod
 from typing import List
 
 class ModelDBConfig(BaseSettings):
-    db_uri_template: str
+    db_uri_template: str= "mysql+pymysql://${user}:${password}@${host}:${port}/${database}"
     pool_size: int
     password: str
     user: str
+    host: str
+    port: int
+    database: str
 
 
 class ModelDB:
@@ -31,8 +34,8 @@ class ModelDB:
     This needs to be separated into model database and mysql implementation of database
     
     """
-    def __init__(self, *, db_uri_template, pool_size, user, password):
-        self._db_uri = Template(db_uri_template).substitute(user=user, password=password)
+    def __init__(self, *, db_uri_template, pool_size, user, password, host, port, database):
+        self._db_uri = Template(db_uri_template).substitute(user=user, password=password, host=host, port=str(port), database=database)
         self._pool_size = pool_size
         self._connection = None
         self._create_engine()
@@ -220,6 +223,13 @@ class ResultsDB(ABC):
     def store(self):
         ...
 
+
+class ResultsMongoDBConfig(BaseSettings):
+    db_uri_template: str = "mongodb://${user}:${password}@${host}:${port}"
+    password: str
+    user: str
+    host: str
+    port: int
 
 
 class ResultsMongoDB(ResultsDB):
