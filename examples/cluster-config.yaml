@@ -1,8 +1,9 @@
+# THIS IS THE CONFIGURATION USED BY PODS TO NETWORK INTERNALLY WITHIN THE CLUSTER 
 model_db:
   pool_size: 1
   password: password
   user: root
-  host: localhost
+  host: model-db-mysql
   port: 3306
   database: model_db
 
@@ -12,5 +13,5 @@ scheduler:
 results_db:
   password:  password
   user: root
-  host: localhost
+  host: results-db-mongodb
   port: 27017
