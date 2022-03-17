@@ -1,9 +1,0 @@
-name: my-example-project
-channels:
-  - conda-forge
-dependencies:
-  - Python=3.9
-  - pandas
-  - pip
-  - prefect[kubernetes]
-  - prefect[github]
