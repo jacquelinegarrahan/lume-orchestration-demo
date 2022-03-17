@@ -8,7 +8,6 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('flow_id')
 args = parser.parse_args()
@@ -42,7 +41,7 @@ distgen_pv_values = {
 
 distgen_configuration = {}
 distgen_settings = {
-    'n_particle': 5000,
+    'n_particle': 10000,
     "t_dist:length:value":  4 * 1.65   #  Inferred pulse stacker FWHM: 4 ps, converted to tukey length
 }
 
@@ -82,8 +81,10 @@ impact_settings = {
     "header:Ny": 32,
     "header:Nz": 32,
     "stop": 16.5,
+  #  "stop": 8,
     "numprocs": 1,
-    "timeout": 1000
+    "timeout": 1000,
+    "total_charge": 0, # for debugging
 }
 
 impact_archive_file = f"{dir_path}/files/archive.h5"
@@ -154,12 +155,11 @@ data = {
 
 # get remote modeling service
 remote_modeling_service = service_container.remote_modeling_service()
-
-#mount_points = [distgen_input_mount, distgen_output_mount, workdir_mount, impact_archive_input_mount, impact_archive_mount, dashboard_mount]
 mount_points = [distgen_input_mount, workdir_mount, impact_archive_input_mount, impact_archive_mount, dashboard_mount]
-
-
-
-
-
 remote_modeling_service.predict(model_id=1, data=data, mount_points=mount_points, lume_configuration_file=LUME_CONFIGURATION_FILE)
+#from distgen_impact_cu_inj_ex.flow.flow import get_flow
+#flow = get_flow()
+
+#flow.run(**data)
+    
+    
