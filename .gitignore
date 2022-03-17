@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# demo output files 
+examples/distgen_impact_cu_inj/files/output/
