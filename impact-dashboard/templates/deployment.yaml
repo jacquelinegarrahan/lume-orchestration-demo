@@ -58,7 +58,7 @@ spec:
               value:  {{ .Values.mongodb.password | quote }}
           volumeMounts:
             - name: dashboard-dir 
-              mountPath: /app/files
+              mountPath: {{ .Values.dashboard_hostdir }}
       volumes:
         - name: dashboard-dir
           hostPath:
