@@ -49,14 +49,18 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
             - name: MONGO_PORT
-              value: {{ .Values.mongodb.port }}
+              value: {{ .Values.mongodb.port | quote }}
             - name: MONGO_HOST
-              value:  {{ .Values.mongodb.host }}
+              value:  {{ .Values.mongodb.host | quote }}
+             - name: MONGO_USERNAME
+              value: {{ .Values.mongodb.user | quote }}
+            - name: MONGO_PASSWORD
+              value:  {{ .Values.mongodb.password | quote }}
           volumeMounts:
-            - name: dashboard_dir 
+            - name: dashboard-dir 
               mountPath: /app/files
       volumes:
-        - name: dashboard_dir
+        - name: dashboard-dir
           hostPath:
             path:  {{ .Values.dashboard_hostdir }}
             type: Directory

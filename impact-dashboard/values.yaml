@@ -5,10 +5,10 @@
 replicaCount: 1
 
 image:
-  repository: jgarrahan/impact-dashboard:latest
+  repository: jgarrahan/impact-dashboard
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: latest
 
 imagePullSecrets: []
 nameOverride: ""
@@ -47,6 +47,8 @@ service:
 mongodb:
   host: results-db-mongodb
   port: 27017
+  user: root
+  password: password
 
 
 ingress:
