@@ -287,11 +287,15 @@ class ModelingService():
         # conda instead of pip
         # get requirements from environment.yml
 
-        raw_url = deployment.url.replace("github", "raw.githubusercontent")
+        env_url = deployment.url.replace("github", "raw.githubusercontent")
         raw_url = raw_url.replace("tree/", "")
 
         # assumes using environment yaml and main branch
         raw_url = f"{raw_url}/environment.yml"
+
+        version_url = deployment.url + f".git@{deployment.version}"
+        env_url = deployment.url.replace("github", "raw.githubusercontent")
+        env_url = env_url + f"{deployment.version}/environment.yml"
 
         # try install
         try:
@@ -305,7 +309,7 @@ class ModelingService():
 
         # try install of package 
         try:
-            output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', f"git+{deployment.url}"])
+            output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', version_url])
          #   output = subprocess.check_call(["conda", "env", "update", "--file", raw_url])
 
         except:
