@@ -31,10 +31,11 @@ def load_yaml_with_env_vars(filepath):
         return value
 
     # ADD RESOLVER AND CONSTRUCTOR
-    yaml.add_implicit_resolver("!pathex", env_pattern)
-    yaml.add_constructor("!pathex", env_constructor)
+    yaml.add_implicit_resolver("!pathex", env_pattern, None, yaml.SafeLoader)
+    yaml.add_constructor("!pathex", env_constructor, yaml.SafeLoader)
 
     with open(filepath, 'r') as file:
         config = yaml.safe_load(file)
+
 
     return config

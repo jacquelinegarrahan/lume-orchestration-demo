@@ -7,6 +7,8 @@ from dependency_injector.wiring import Provide, inject
 from slac_services.config import SLACServices
 from slac_services.services.modeling import ModelDB, RemoteModelingService
 from slac_services.services.scheduling import PrefectScheduler
+from slac_services.utils import load_yaml_with_env_vars
+
 
 @click.command()
 @click.argument('configuration_file', type=click.File(mode='r'))
@@ -21,11 +23,10 @@ def save_model(configuration_file, model_db: ModelDB = Provide[SLACServices.mode
 
 
 @click.command()
-@click.argument('configuration_file', type=click.File(mode='r'))
+@click.argument('configuration_file')
 @inject
 def save_model_deployment(configuration_file, model_db: ModelDB = Provide[SLACServices.model_db]):
-    config = yaml.safe_load(configuration_file)
-
+    config = load_yaml_with_env_vars(configuration_file)
 
     # get versioned artifact
     response = requests.get(config["model_version"]["url"], stream=True)
