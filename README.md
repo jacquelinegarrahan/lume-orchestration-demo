@@ -25,7 +25,7 @@ Prereqs:
 ### 1. Configure environment 
 First, set up the conda environment for the demo:
 ```
-conda create -f environment.yml
+conda env create -f environment.yml
 conda activate lume-orchestration-demo
 pip install -e .
 ```
