@@ -288,8 +288,10 @@ class ModelingService():
         # get requirements from environment.yml
 
         raw_url = deployment.url.replace("github", "raw.githubusercontent")
+        raw_url = raw_url.replace("tree/", "")
+
         # assumes using environment yaml and main branch
-        raw_url = f"{raw_url}/main/environment.yml"
+        raw_url = f"{raw_url}/environment.yml"
 
         # try install
         try:
@@ -311,17 +313,16 @@ class ModelingService():
             sys.exit()
  
         dist = distribution(deployment.package_name)
-        normalized_name = dist._normalized_name
-        model_entrypoint = dist.entry_points.select(group="orchestration", name=f"{normalized_name}.model")
+        model_entrypoint = dist.entry_points.select(group="orchestration", name=f"{deployment.package_name}.model")
         if len(model_entrypoint):
             model_entrypoint = model_entrypoint[0].value
 
-        flow_entrypoint = dist.entry_points.select(group="orchestration", name=f"{normalized_name}.flow")
+        flow_entrypoint = dist.entry_points.select(group="orchestration", name=f"{deployment.package_name}.flow")
         if len(flow_entrypoint):
             flow_entrypoint = flow_entrypoint[0].value
 
         # add to registry
-        self._model_registry[deployment.model_id] = {"model_entrypoint": model_entrypoint, "package": normalized_name, "flow_entrypoint": flow_entrypoint}
+        self._model_registry[deployment.model_id] = {"model_entrypoint": model_entrypoint, "package": deployment.package_name, "flow_entrypoint": flow_entrypoint}
 
 
 class LocalModelingService(ModelingService):
