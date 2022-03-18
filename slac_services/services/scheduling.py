@@ -129,11 +129,13 @@ class PrefectScheduler:
         self,
         flow: Flow,
         project_name: str,
+        image_tag: str,
         # mount_points: List[MountPoint] = None,
         build: bool = False,
         #   job_template: str= None,
         #     lume_configuration_file: str=None
     ):
+        flow.storage.image_tag= image_tag
         flow_id = flow.register(project_name=project_name, build=build)
 
         return flow_id

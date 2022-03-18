@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from doctest import debug_script
 from re import S
+from sqlite3 import enable_callback_tracebacks
 from unittest.util import strclass
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.base import Connection
@@ -12,6 +13,7 @@ from slac_services.utils import flatten_dict
 import subprocess
 import sys
 from importlib_metadata import distribution
+import importlib
 from pymongo import MongoClient
 import pandas as pd 
 from abc import ABC, abstractmethod
@@ -288,34 +290,31 @@ class ModelingService():
         # get requirements from environment.yml
 
         env_url = deployment.url.replace("github", "raw.githubusercontent")
-        raw_url = raw_url.replace("tree/", "")
-
-        # assumes using environment yaml and main branch
-        raw_url = f"{raw_url}/environment.yml"
 
         version_url = deployment.url + f".git@{deployment.version}"
         env_url = deployment.url.replace("github", "raw.githubusercontent")
-        env_url = env_url + f"{deployment.version}/environment.yml"
+        env_url = env_url + f"/{deployment.version}/environment.yml"
 
-        # try install
+        # try install of environment
         try:
-         #   output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', deployment.url])
-            output = subprocess.check_call(["conda", "env", "update", "--file", raw_url])
+            output = subprocess.check_call(["conda", "env", "update", "--file", env_url])
 
         except:
             print(f"Unable to install environment for {deployment.package_name}")
             sys.exit()
 
-
         # try install of package 
         try:
-            output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', version_url])
-         #   output = subprocess.check_call(["conda", "env", "update", "--file", raw_url])
+            output = subprocess.check_call([sys.executable, '-m', 'pip', 'install', f"git+{version_url}"])
 
         except:
             print(f"Unable to install {deployment.package_name}")
             sys.exit()
+
+        self._register_deployment(deployment)
  
+    def _register_deployment(self, deployment):
+        
         dist = distribution(deployment.package_name)
         model_entrypoint = dist.entry_points.select(group="orchestration", name=f"{deployment.package_name}.model")
         if len(model_entrypoint):
@@ -329,27 +328,36 @@ class ModelingService():
         self._model_registry[deployment.model_id] = {"model_entrypoint": model_entrypoint, "package": deployment.package_name, "flow_entrypoint": flow_entrypoint}
 
 
-class LocalModelingService(ModelingService):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def _get_model_info(self, deployment):
 
+        # check if this is in the registry
+        if deployment.model_id not in self._model_registry:
 
-    def get_model(self, model_id: int):
-        # add function to get old deployment
+            model_loader = importlib.find_loader(deployment.package_name)
+            found = model_loader is not None
 
-        if self._model_registry.get(model_id) is not None:
-            pass
+            if not found:
+                self._install_deployment(deployment)
 
-        else:
-            deployment = self._model_db.get_latest_deployment(model_id)
+            # has been found but missing from registry
+            else:
+
+                self._register_deployment(deployment)
+
+        # check if correct version
+        version = getattr(import_module(deployment.package_name), "__version__")
+        if f"v{version}" != deployment.version:
             self._install_deployment(deployment)
 
-        return self._load_model_from_entrypoint(self._model_registry[model_id]["model_entrypoint"])
+        return self._model_registry[deployment.model_id]
+    
+    @staticmethod
+    def _load_flow_from_entrypoint(flow_entrypoint):
 
-    def predict(self, *, model_id: int, input_variables):
-        model = self.get_model(model_id)
+        module_name, fn_name = flow_entrypoint.rsplit(":", 1)
+        fn = getattr(import_module(module_name), fn_name)
 
-        return model.evaluate(input_variables)
+        return fn()
 
     @staticmethod
     def _load_model_from_entrypoint(model_entrypoint):
@@ -357,6 +365,46 @@ class LocalModelingService(ModelingService):
         model_class = getattr(import_module(module_name), class_name)
 
         return model_class()
+
+            
+class LocalModelingService(ModelingService):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    
+    def get_latest_model(self, model_id: int):
+        # add function to get old deployment
+
+        if self._model_registry.get(model_id) is not None:
+            pass
+
+        else:
+            deployment = self._model_db.get_latest_deployment(model_id)
+            model_info = self._get_model_info(deployment)
+
+        return self._load_model_from_entrypoint(model_info["model_entrypoint"])
+
+    def predict(self, *, model_id: int, input_variables):
+        model = self.get_latest_model(model_id)
+
+        return model.evaluate(input_variables)
+
+    def get_latest_flow(self, model_id: int):
+        # add function to get old deployment
+
+        if self._model_registry.get(model_id) is not None:
+            pass
+
+        else:
+            deployment = self._model_db.get_latest_deployment(model_id)
+            model_info = self._get_model_info(deployment)
+
+        return self._load_flow_from_entrypoint(model_info["flow_entrypoint"])
+
+    def predict_flow(self, *, model_id: int, data: dict):
+        flow = self.get_latest_flow(model_id)
+
+        return flow.run(**data)
 
 
 class RemoteModelingService(ModelingService):
@@ -370,31 +418,23 @@ class RemoteModelingService(ModelingService):
 
         #only using latest for now
         flow_id = self._model_db.get_latest_model_flow(model_id)
-        self._scheduler.schedule_run(flow_id=flow_id, data=data, mount_points=mount_points, lume_configuration_file=lume_configuration_file)
-
+        flow_run_id = self._scheduler.schedule_run(flow_id=flow_id, data=data, mount_points=mount_points, lume_configuration_file=lume_configuration_file)
+        print(f"Run scheduled for model {model_id} with flow_run_id = {flow_run_id}")
 
     def register_deployment(self, *, deployment_id, project_name):
         deployment = self._model_db.get_deployment(deployment_id)
-        self._install_deployment(deployment)
-        #register_flow(self, flow: Flow, project_name: str, image: str = None):
+        model_info = self._get_model_info(deployment)
 
-        flow_entrypoint = self._model_registry[deployment.model_id]["flow_entrypoint"]
-        flow = self._return_flow_from_entrypoint(flow_entrypoint)
+        flow_entrypoint = model_info["flow_entrypoint"]
+        flow = self._load_flow_from_entrypoint(flow_entrypoint)
 
-        flow_id = self._scheduler.register_flow(flow, project_name)
+        flow_id = self._scheduler.register_flow(flow, project_name, deployment.version)
 
         self._model_db.store_flow(flow_id =flow_id, deployment_ids=[deployment_id],flow_name= self._model_registry[deployment.model_id]["package"], project_name=project_name)
 
         return flow_id
 
 
-    @staticmethod
-    def _return_flow_from_entrypoint(flow_entrypoint):
-
-        module_name, fn_name = flow_entrypoint.rsplit(":", 1)
-        fn = getattr(import_module(module_name), fn_name)
-
-        return fn()
 
     def save_model(self):
         ...
