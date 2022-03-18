@@ -113,11 +113,12 @@ source model_db/schema.sql
 
 ### Apply environment variables
 
-The example slac_services included in this repository use a configuration file for setting up service interfaces that is indicated by the environment variable `LUME_ORCHESTRATION_CONFIG`. Configuration for these services will differ inside/outside the Kubernetes cluster. For this reason, we define a second environment variable `LUME_ORCHESTRATION_CLUSTER_CONFIG` to be passed as `LUME_ORCHESTRATION_CONFIG` to cluster jobs/
+The example slac_services included in this repository use a configuration file for setting up service interfaces that is indicated by the environment variable `LUME_ORCHESTRATION_CONFIG`. Configuration for these services will differ inside/outside the Kubernetes cluster. For this reason, we define a second environment variable `LUME_ORCHESTRATION_CLUSTER_CONFIG` to be passed as `LUME_ORCHESTRATION_CONFIG` to cluster jobs. `DEMO_DIR` will be used for resolving paths to demo artifacts.
 
 ```
 export LUME_ORCHESTRATION_CLUSTER_CONFIG=$(pwd)/examples/cluster-config.yaml
 export LUME_ORCHESTRATION_CONFIG=$(pwd)/examples/config.yaml
+export DEMO_DIR=$(pwd)
 ```
 
 ### Demos
