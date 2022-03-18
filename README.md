@@ -119,3 +119,8 @@ The example slac_services included in this repository use a configuration file f
 export LUME_ORCHESTRATION_CLUSTER_CONFIG=$(pwd)/examples/cluster-config.yaml
 export LUME_ORCHESTRATION_CONFIG=$(pwd)/examples/config.yaml
 ```
+
+### Demos
+
+- [lcls-cu-inj-nn]((docs/lcls_cu_inj_nn.md)  
+- [distgen-impact-cu-inj]((docs/distgen_impact_cu_inj.md)  
