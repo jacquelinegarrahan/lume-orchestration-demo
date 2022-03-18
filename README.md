@@ -123,5 +123,5 @@ export DEMO_DIR=$(pwd)
 
 ### Demos
 
-- [lcls-cu-inj-nn]((docs/lcls_cu_inj_nn.md)  
-- [distgen-impact-cu-inj]((docs/distgen_impact_cu_inj.md)  
+- [lcls-cu-inj-nn](docs/lcls_cu_inj_nn.md)  
+- [distgen-impact-cu-inj](docs/distgen_impact_cu_inj.md)  
