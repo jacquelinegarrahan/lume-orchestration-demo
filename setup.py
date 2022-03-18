@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 from os import path, environ
-#import versioneer
+import versioneer
 
 cur_dir = path.abspath(path.dirname(__file__))
 
@@ -12,8 +12,8 @@ with open(path.join(cur_dir, "requirements.txt"), "r") as f:
 
 setup(
     name="slac_services",
-    version=0.0,
-   # cmdclass=versioneer.get_cmdclass(),
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     author="SLAC National Accelerator Laboratory",
     author_email="jgarra@slac.stanford.edu",
     license="SLAC Open",
