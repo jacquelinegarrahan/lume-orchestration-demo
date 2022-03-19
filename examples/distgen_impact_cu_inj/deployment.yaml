@@ -1,5 +1,5 @@
 model_version: 
-  version: v0.10
+  version: v0.11
   url: https://github.com/jacquelinegarrahan/distgen-impact-cu-inj-ex
   model_id: ${DISTGEN_IMPACT_CU_INJ_MODEL_ID}
   package_name: distgen_impact_cu_inj_ex
