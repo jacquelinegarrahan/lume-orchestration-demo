@@ -10,8 +10,6 @@ spec:
     spec:
       containers:
         - name: flow
-#          image: prefecthq/prefect:latest
-     #     command: ["/bin/sh", "-c"]
           args: ["prefect execute flow-run"]
           env:
             - name: PREFECT__CLOUD__API
