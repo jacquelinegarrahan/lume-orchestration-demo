@@ -18,6 +18,7 @@ from pymongo import MongoClient
 import pandas as pd 
 from abc import ABC, abstractmethod
 from typing import List
+import os
 
 class ModelDBConfig(BaseSettings):
     db_uri_template: str= "mysql+pymysql://${user}:${password}@${host}:${port}/${database}"
@@ -295,9 +296,12 @@ class ModelingService():
         env_url = deployment.url.replace("github", "raw.githubusercontent")
         env_url = env_url + f"/{deployment.version}/environment.yml"
 
+        # get active env name
+        env_name = os.environ["CONDA_DEFAULT_ENV"]
+
         # try install of environment
         try:
-            output = subprocess.check_call(["conda", "env", "update", "--file", env_url])
+            output = subprocess.check_call(["conda", "env", "update", "--name",  env_name, "--file", env_url])
 
         except:
             print(f"Unable to install environment for {deployment.package_name}")
