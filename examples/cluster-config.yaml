@@ -7,9 +7,6 @@ model_db:
   port: 3306
   database: model_db
 
-scheduler:
-  cluster_mount_point: ${DEMO_DIR}
-
 results_db:
   password:  password
   user: root
