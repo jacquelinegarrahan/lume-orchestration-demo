@@ -1,13 +1,14 @@
 # TODO
 
 ## HIGH
-- Update all examples to use paths relative to the package directory for repeatability
-- Update older examples to use newer services (keep simple dockerfile one)
+
+- Update dockerfile example to use newer services (keep simple dockerfile one)
 - Port forwarding on dashboard occasionally crashes ?
 - Dashboard itself sometimes silently crashes
-- Notebook for distgen predict
-- Fill out demo instructions
+
 - Add results storage to the neural network model
+- Release w/ pinned slac services and drop scheduler from cluster config
+
 
 ## LOWER
 - Dockerfile to install versions
@@ -63,3 +64,6 @@
 - versioneer for slac_services 
 - Fix conda installation bug 
 - Fix distgen versioneer
+- Fill out demo instructions
+- Notebook for distgen predict
+
