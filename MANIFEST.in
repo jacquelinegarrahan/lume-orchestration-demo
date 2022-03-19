@@ -1,2 +1,3 @@
-recursive-include slac_services/files *include versioneer.py
+recursive-include slac_services/files *
+include versioneer.py
 include slac_services/_version.py
