@@ -27,7 +27,10 @@ def load_yaml_with_env_vars(filepath):
     def env_constructor(loader, node):
         value = loader.construct_scalar(node)
         for group in env_pattern.findall(value):
+            if not os.environ.get(group):
+                raise ValueError(f"Environment variable {group} is not defined")
             value = value.replace(f"${{{group}}}", os.environ.get(group))
+
         return value
 
     # ADD RESOLVER AND CONSTRUCTOR

@@ -10,6 +10,8 @@ from slac_services.services.modeling import ModelDBConfig, ModelDB, ResultsMongo
 from slac_services.services.scheduling import PrefectScheduler
 from slac_services.utils import load_yaml_with_env_vars
 
+from typing import Optional
+
 SDF_RUN_TEMPLATE  = resource_filename(
     "slac_services.files", "kubernetes_job.yaml"
 )
@@ -27,7 +29,7 @@ class SDFResultsDBConfig(ResultsMongoDBConfig):
     port: int
 
 class PrefectSchedulerConfig(BaseSettings):
-    cluster_mount_point: str
+    cluster_mount_point: Optional[str]
 
 class Settings(BaseSettings):
     model_db_config: SDFModelDBConfig
