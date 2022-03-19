@@ -8,13 +8,6 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('flow_id')
-args = parser.parse_args()
-
-flow_id = args.flow_id
-
-
 LUME_CONFIGURATION_FILE = os.environ["LUME_ORCHESTRATION_CLUSTER_CONFIG"]
 
 
@@ -137,7 +130,6 @@ dashboard_mount = MountPoint(
 
 data = {
     "distgen_input_filename": distgen_input_filename,
-   # "distgen_output_filename": distgen_output_filename,
     "distgen_settings": distgen_settings,
     "distgen_configuration": distgen_configuration,
     "distgen_pv_values": distgen_pv_values,
