@@ -62,11 +62,12 @@ class SLACServices(containers.DeclarativeContainer):
         password=config.results_db_config.password
     )
 
-    prefect_scheduler = providers.Singleton(
-        PrefectScheduler,
-        job_template = config.run_template,
-        cluster_mount_point = config.scheduler_config.cluster_mount_point,
-    )
+    if config.scheduler_config is not None:
+        prefect_scheduler = providers.Singleton(
+            PrefectScheduler,
+            job_template = config.run_template,
+            cluster_mount_point = config.scheduler_config.cluster_mount_point,
+        )
 
     remote_modeling_service = providers.Singleton(
         RemoteModelingService,
@@ -92,7 +93,10 @@ def parse_config(filepath):
 
     model_db_config = SDFModelDBConfig(**config["model_db"])
     results_db_config = SDFResultsDBConfig(**config["results_db"])
-    prefect_scheduler_config = PrefectSchedulerConfig(**config["scheduler"])
+
+    prefect_scheduler_config = None
+    if config.get("scheduler") is not None:
+        prefect_scheduler_config = PrefectSchedulerConfig(**config["scheduler"])
 
     settings = Settings(model_db_config=model_db_config, results_db_config=results_db_config, scheduler_config=prefect_scheduler_config)
 
