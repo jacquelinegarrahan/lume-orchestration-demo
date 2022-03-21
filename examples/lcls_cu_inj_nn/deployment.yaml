@@ -1,5 +1,5 @@
 model_version: 
-  version: v0.33
+  version: v0.32
   url: https://github.com/jacquelinegarrahan/lcls-cu-inj-nn-ex
   model_id: ${LCLS_CU_INJ_NN_MODEL_ID}
   package_name: lcls_cu_inj_nn_ex
