@@ -18,8 +18,10 @@ Prereqs:
 - [kind](https://kind.sigs.k8s.io/)
 - docker
 - conda
-- helm  (brew install helm)
-- mysql client  (brew install mysql)
+- helm 
+- mysql
+
+![image](docs/files/Modeling_infra.png)
 
 
 ## Setup instructions (LOCAL)
@@ -71,7 +73,7 @@ Which will out put something along the lines of:
 NAME                                      READY   STATUS      RESTARTS   AGE
 prefect-server-apollo-844d6bc99b-dgkfl    1/1     Running     1          2m15s
 prefect-server-agent-85bc5f6cc5-g5gr6     1/1     Running     3          73s
-prefect-server-create-tenant-job-6jtxb    0/1     Completed   3          2m15s
+prefect-server-create-tenant-job-6jtxb    0/1   kub  Completed   3          2m15s
 prefect-server-graphql-5cdd675fdf-jj4lk   1/1     Running     0          2m15s
 prefect-server-hasura-7997fb8f8c-2xmp2    1/1     Running     2          2m15s
 prefect-server-postgresql-0               1/1     Running     0          2m15s
@@ -80,6 +82,7 @@ prefect-server-ui-5459c9f645-l964j        1/1     Running     0          2m15s
 ```
 The pods may take a few minutes to stabilize as some have dependencies on one another. Once all are running, install the model tracking database using the values given in `model_db/values.yaml`. Note that the user/password combo given in this file is suitable only to a toy model and better auth must be configured for usable deployments.
 ```
+# both mysql and mongodb use the bitnami repo, so will have to add
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm install model-db bitnami/mysql -f model_db/values.yaml
 ```
