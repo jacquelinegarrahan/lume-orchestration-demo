@@ -1,5 +1,8 @@
 # lume-orchestration-demo
 
+![image](docs/files/Modeling_infra.png)
+
+
 This repository contains demos of model orchestration using a set of standardized services and deployed over a Kubernetes cluster. This README describes the prerequesite setup necessary for getting started with demos for a [neural network impact surrogate of the LCLS copper injector](docs/lcls_cu_inj_nn.md) and a [distgen to impact model of the LCLS copper injector](docs/distgen_impact_cu_inj.md).
 
 We use a [kind](https://kind.sigs.k8s.io/) local Kubernetes cluster for the deployment and networking of the following components:
@@ -21,7 +24,6 @@ Prereqs:
 - helm 
 - mysql
 
-![image](docs/files/Modeling_infra.png)
 
 
 ## Setup instructions (LOCAL)
