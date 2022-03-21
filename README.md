@@ -15,9 +15,11 @@ We use a [kind](https://kind.sigs.k8s.io/) local Kubernetes cluster for the depl
 
 Prereqs:
 - kubectl
-- kind
+- [kind](https://kind.sigs.k8s.io/)
 - docker
-- some conda management
+- conda
+- helm  (brew install helm)
+- mysql client  (brew install mysql)
 
 
 ## Setup instructions (LOCAL)
@@ -78,6 +80,7 @@ prefect-server-ui-5459c9f645-l964j        1/1     Running     0          2m15s
 ```
 The pods may take a few minutes to stabilize as some have dependencies on one another. Once all are running, install the model tracking database using the values given in `model_db/values.yaml`. Note that the user/password combo given in this file is suitable only to a toy model and better auth must be configured for usable deployments.
 ```
+helm repo add bitnami https://charts.bitnami.com/bitnami
 helm install model-db bitnami/mysql -f model_db/values.yaml
 ```
 Next set up the result tracking database:
