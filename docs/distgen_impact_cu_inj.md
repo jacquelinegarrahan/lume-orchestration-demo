@@ -32,7 +32,7 @@ You can check this has been tracked in the database:
 ```
 mysql -u root -h 127.0.0.1 -ppassword
 use model_db
-select * from model_versions
+select * from model_versions;
 ```
 
 ## Register with remote modeling service

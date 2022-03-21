@@ -45,10 +45,8 @@ You can check this has been tracked in the database:
 ```
 mysql -u root -h 127.0.0.1 -ppassword
 use model_db
-select * from model_versions
+select * from model_versions;
 ```
-
-
 
 ## Register with remote modeling service
 
@@ -68,7 +66,8 @@ save-deployment-flow $LCLS_CU_INJ_NN_DEPLOYMENT_ID my-models
 
 ## Open notebook
 
+Continue the demo in the Jupyter notebook included in `examples/lcls_cu_inj_nn`
 
 ```
-jupyter notebook
+jupyter notebook examples/lcls_cu_inj_nn/RunModel.ipynb
 ```
