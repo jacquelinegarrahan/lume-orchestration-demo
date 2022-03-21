@@ -11,7 +11,6 @@
 
 
 ## LOWER
-- Dockerfile to install versions
 - Research caching
 - Adapt Bmad
 - Use LocalResults for file saving in distgen example
@@ -66,4 +65,5 @@
 - Fix distgen versioneer
 - Fill out demo instructions
 - Notebook for distgen predict
+- Dockerfile to install versions
 
